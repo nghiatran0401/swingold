@@ -11,7 +11,7 @@ TRADE_MANAGER_ADDRESS = Web3.to_checksum_address(os.getenv("TRADE_MANAGER_ADDRES
 TOKEN_ADDRESS = Web3.to_checksum_address(os.getenv("TOKEN_ADDRESS"))
 ACCOUNT = w3.eth.account.from_key(PRIVATE_KEY)
 
-ABI_OUTPUT_DIR = os.getenv("ABI_OUTPUT_DIR", "/app/shared-abis")
+ABI_OUTPUT_DIR = os.getenv("ABI_OUTPUT_DIR")
 with open(os.path.join(ABI_OUTPUT_DIR, "TradeManagerABI.json"), "r") as f:
     trade_abi = json.load(f)
 with open(os.path.join(ABI_OUTPUT_DIR, "TokenABI.json"), "r") as f:

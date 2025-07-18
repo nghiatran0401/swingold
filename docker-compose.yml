@@ -6,7 +6,7 @@ services:
     container_name: swingold_db_mysql
     restart: unless-stopped
     environment:
-      MYSQL_HOST: db
+      MYSQL_HOST: db_mysql
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: swingold
       MYSQL_USER: user

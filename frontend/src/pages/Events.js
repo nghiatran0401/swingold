@@ -1,10 +1,14 @@
 import React, { useState, useMemo, useEffect } from "react";
+import debounce from "lodash.debounce";
 import Navbar from "../components/Navbar";
 import { fetchEvents, fetchAvailableMonths, toggleEventEnrollment } from "../api";
-import { Grid, Paper, Box, Button, Typography, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Slide } from "@mui/material";
+import { Grid, Paper, Box, Button, Typography, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Slide, TextField } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import Search from "@mui/icons-material/Search";
 
 function Events({ logout }) {
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [enrolledEvents, setEnrolledEvents] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -14,6 +18,13 @@ function Events({ logout }) {
   const [months, setMonths] = useState(["All"]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Debounce search input for events
+  useEffect(() => {
+    const handler = debounce((val) => setSearchTerm(val), 300);
+    handler(searchInput);
+    return () => handler.cancel();
+  }, [searchInput]);
 
   useEffect(() => {
     setLoading(true);
@@ -27,7 +38,10 @@ function Events({ logout }) {
     fetchAvailableMonths().then((m) => setMonths(["All", ...m]));
   }, []);
 
-  const filteredEvents = events;
+  const filteredEvents = useMemo(() => {
+    if (!searchTerm) return events;
+    return events.filter((event) => (event.name && event.name.toLowerCase().includes(searchTerm.toLowerCase())) || (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())));
+  }, [events, searchTerm]);
 
   const handleEnrollClick = (eventId) => {
     setPendingEventId(eventId);
@@ -55,12 +69,23 @@ function Events({ logout }) {
     setPendingEventId(null);
   };
 
-  if (loading) return <div>Loading events...</div>;
-  if (error) return <div>Error: {error}</div>;
-
   return (
     <>
       <Navbar logout={logout} />
+
+      {loading && (
+        <Box sx={{ position: "fixed", top: 64, left: 0, width: "100%", zIndex: 2000, bgcolor: "rgba(255,255,255,0.7)", textAlign: "center", py: 2 }}>
+          <Typography variant="body1">Loading events...</Typography>
+        </Box>
+      )}
+
+      {error && (
+        <Box sx={{ position: "fixed", top: 64, left: 0, width: "100%", zIndex: 2000, bgcolor: "#ffebee", textAlign: "center", py: 2 }}>
+          <Typography variant="body1" color="error">
+            Error: {error}
+          </Typography>
+        </Box>
+      )}
 
       {/* Main Content */}
       <Box
@@ -72,7 +97,7 @@ function Events({ logout }) {
         }}
       >
         <Box className="max-w-6xl mx-auto px-4">
-          {/* Month Filter */}
+          {/* Search and Month Filter */}
           <Box sx={{ mb: 4, textAlign: "center" }}>
             <Typography
               variant="h4"
@@ -104,6 +129,29 @@ function Events({ logout }) {
                 />
               ))}
             </Box>
+
+            <TextField
+              fullWidth
+              placeholder="Search events"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              InputProps={{
+                startAdornment: <Search sx={{ color: "#666", mr: 1 }} />,
+              }}
+              sx={{
+                my: 3,
+                maxWidth: 640,
+                backgroundColor: "#fff",
+                borderRadius: 2,
+                fontFamily: "Poppins",
+                "& .MuiOutlinedInput-root": {
+                  fontFamily: "Poppins",
+                  "& fieldset": { borderColor: "#ccc" },
+                  "&:hover fieldset": { borderColor: "#ff001e" },
+                  "&.Mui-focused fieldset": { borderColor: "#ff001e" },
+                },
+              }}
+            />
           </Box>
 
           {/* Events List */}

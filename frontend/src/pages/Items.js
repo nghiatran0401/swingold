@@ -3,8 +3,10 @@ import { fetchItems, toggleItemFavorite } from "../api";
 import Navbar from "../components/Navbar";
 import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import { Search, FilterList, Favorite, FavoriteBorder } from "@mui/icons-material";
+import debounce from "lodash.debounce";
 
 function Items({ logout }) {
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [favorites, setFavorites] = useState([]);
@@ -16,8 +18,13 @@ function Items({ logout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-// Get Data from Item API
+  useEffect(() => {
+    const handler = debounce((val) => setSearchTerm(val), 300);
+    handler(searchInput);
+    return () => handler.cancel();
+  }, [searchInput]);
 
+  // Get Data from Item API
   useEffect(() => {
     setLoading(true);
     fetchItems(searchTerm)
@@ -47,7 +54,6 @@ function Items({ logout }) {
     setSelectedItem(item);
   };
 
-  
   const toggleFavorite = async (itemId) => {
     try {
       await toggleItemFavorite(itemId);
@@ -59,14 +65,25 @@ function Items({ logout }) {
     }
   };
 
-  // Error message
-  if (loading) return <div>Loading items...</div>;
-  if (error) return <div>Error: {error}</div>;
-
   return (
     <>
       <Navbar logout={logout} />
-{/* View all items button */}
+
+      {loading && (
+        <Box sx={{ position: "fixed", top: 64, left: 0, width: "100%", zIndex: 2000, bgcolor: "rgba(255,255,255,0.7)", textAlign: "center", py: 2 }}>
+          <Typography variant="body1">Loading items...</Typography>
+        </Box>
+      )}
+
+      {error && (
+        <Box sx={{ position: "fixed", top: 64, left: 0, width: "100%", zIndex: 2000, bgcolor: "#ffebee", textAlign: "center", py: 2 }}>
+          <Typography variant="body1" color="error">
+            Error: {error}
+          </Typography>
+        </Box>
+      )}
+
+      {/* View all items button */}
       <Box sx={{ backgroundColor: "#f5f5f5", minHeight: "100vh", pt: 10, pb: 4 }}>
         <Box className="max-w-7xl mx-auto px-4">
           <Typography
@@ -101,8 +118,8 @@ function Items({ logout }) {
               <TextField
                 fullWidth
                 placeholder="Find your items"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 InputProps={{
                   startAdornment: <Search sx={{ color: "#666", mr: 1 }} />,
                 }}
@@ -117,7 +134,8 @@ function Items({ logout }) {
                   },
                 }}
               />
-            {/*  Sort By  button */}
+
+              {/*  Sort By  button */}
               <FormControl fullWidth sx={{ minWidth: { sm: 180 }, borderRadius: 2 }}>
                 <InputLabel sx={{ fontFamily: "Poppins" }}>Sort by</InputLabel>
                 <Select
@@ -237,7 +255,7 @@ function Items({ logout }) {
                       >
                         {item.name}
                       </Typography>
-                        {/*  Price of item */}
+                      {/*  Price of item */}
                       <Typography
                         variant="subtitle2"
                         sx={{
@@ -251,7 +269,7 @@ function Items({ logout }) {
                       >
                         {item.price} Gold
                       </Typography>
-                        {/* View Detail button */}
+                      {/* View Detail button */}
                       <Button
                         variant="contained"
                         onClick={(e) => {
@@ -299,12 +317,11 @@ function Items({ logout }) {
             setSelectedItem(null);
             setSelectedSize("");
             setPurchased(false);
-          }} 
+          }}
           fullWidth
           maxWidth="md"
           PaperProps={{ sx: { borderRadius: 4, backgroundColor: "#f5f5f5" } }}
         >
-
           {/* Display the chosen item, with detailed description */}
           {selectedItem && (
             <>
@@ -348,7 +365,7 @@ function Items({ logout }) {
 
                       <DialogContentText sx={{ color: "#555" }}>{selectedItem.description || "Product Description. swinburne t shirt, 3 sizes....."}</DialogContentText>
 
-                    {/* Item size selection */}
+                      {/* Item size selection */}
                       {selectedItem.size && (
                         <Box>
                           <Typography variant="subtitle2" fontWeight={600} mb={1}>
@@ -382,7 +399,7 @@ function Items({ logout }) {
                 </Grid>
               </DialogContent>
 
-                      {/* Purchase button */}
+              {/* Purchase button */}
               <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
                 <Button
                   variant="contained"
@@ -407,7 +424,7 @@ function Items({ logout }) {
           )}
         </Dialog>
 
-          {/* If purchased -> show transaction details */}
+        {/* If purchased -> show transaction details */}
         <Dialog open={confirming} onClose={() => setConfirming(false)}>
           {!purchased ? (
             <>

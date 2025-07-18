@@ -12,10 +12,7 @@ This project proposes a **Blockchain-based solution** to decentralise and improv
 
 # How to run the project
 
-Open 2 terminal tabs:
-
-- Backend: `cd backend && docker-compose up -d`
-- Frontend: `cd frontend && npm install && npm run start`
+Run: `docker-compose up -d`
 
 ## Project Structure Overview
 
