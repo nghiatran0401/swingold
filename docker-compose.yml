@@ -1,0 +1,63 @@
+services:
+  # MySQL Database
+  # https://blog.devops.dev/7-simple-steps-to-set-up-a-mysql-instance-using-docker-compose-01d59b6810cd
+  db_mysql:
+    image: mysql:8.0
+    container_name: swingold_db_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/wapp/mysql/init:/docker-entrypoint-initdb.d
+
+  # Hardhat
+  # https://hardhat.org/hardhat-runner/docs/getting-started
+  backend_hardhat:
+    build:
+      context: ./backend/dapp
+      dockerfile: Dockerfile
+    container_name: swingold_backend_hardhat
+    restart: unless-stopped
+    ports:
+      - "8545:8545"
+    volumes:
+      - abis:/app/shared-abis
+
+  # FastAPI
+  # https://hub.docker.com/_/python
+  backend_fastapi:
+    build:
+      context: ./backend/wapp
+      dockerfile: Dockerfile
+    container_name: swingold_backend_fastapi
+    restart: unless-stopped
+    # All environment variables are now loaded from the root .env file
+    # Remove this environment: block for cleaner config
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db_mysql
+      - backend_hardhat
+    volumes:
+      - abis:/app/shared-abis
+
+  # React Frontend
+  # https://hub.docker.com/_/node
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: swingold_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend_fastapi
+
+# Persists MySQL data so it’s not lost when the container restarts or is removed.
+volumes:
+  mysql_data:
+    driver: local
+  abis:
+    driver: local
