@@ -5,6 +5,13 @@ services:
     image: mysql:8.0
     container_name: swingold_db_mysql
     restart: unless-stopped
+    environment:
+      MYSQL_HOST: db
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: swingold
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_PORT: 3306
     ports:
       - "3306:3306"
     volumes:
@@ -23,6 +30,8 @@ services:
       - "8545:8545"
     volumes:
       - abis:/app/shared-abis
+    environment:
+      ABI_OUTPUT_DIR: /app/shared-abis
 
   # FastAPI
   # https://hub.docker.com/_/python
@@ -32,8 +41,17 @@ services:
       dockerfile: Dockerfile
     container_name: swingold_backend_fastapi
     restart: unless-stopped
-    # All environment variables are now loaded from the root .env file
-    # Remove this environment: block for cleaner config
+    environment:
+      MYSQL_HOST: db_mysql
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: swingold
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_PORT: 3306
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      FRONTEND_URL: http://localhost:3000
+      ABI_OUTPUT_DIR: /app/shared-abis
     ports:
       - "8000:8000"
     depends_on:
@@ -50,6 +68,8 @@ services:
       dockerfile: Dockerfile
     container_name: swingold_frontend
     restart: unless-stopped
+    environment:
+      API_BASE_URL: http://localhost:8000/api/v1
     ports:
       - "3000:3000"
     depends_on:

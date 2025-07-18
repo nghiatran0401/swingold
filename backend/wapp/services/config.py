@@ -1,12 +1,10 @@
 # https://dev.to/yanagisawahidetoshi/efficiently-using-environment-variables-in-fastapi-4lal
-# Loads environment variables from .env file and builds the database URL
+# Loads environment variables from .env file and builds the atabase URL
 
 import os
 from dotenv import load_dotenv
-from pathlib import Path
 
-# Always load the root .env file for Docker Compose compatibility
-load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / '.env')
+load_dotenv()
 
 class Settings:
     # Database settings
