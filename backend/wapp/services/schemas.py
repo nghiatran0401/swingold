@@ -1,9 +1,10 @@
 # https://fastapi.tiangolo.com/tutorial/sql-databases/
 # Defines how data is validated and serialized for API endpoints
 
-from typing import List, Optional
+from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
+from decimal import Decimal
 
 # Item Schemas
 class ItemBase(BaseModel):
@@ -73,21 +74,27 @@ class EventResponse(EventBase):
 
 # Transaction Schemas
 class TransactionBase(BaseModel):
-    amount: str = Field(..., max_length=20)
+    amount: Decimal = Field(...)
+    direction: Literal['credit', 'debit']
     description: str = Field(..., min_length=1, max_length=500)
     date: str = Field(..., max_length=50)
     time: Optional[str] = None
-    user_id: Optional[int] = None
+    user_id: int
+    tx_hash: Optional[str] = None
+    status: Optional[str] = None
 
 class TransactionCreate(TransactionBase):
     pass
 
 class TransactionUpdate(BaseModel):
-    amount: Optional[str] = Field(None, max_length=20)
+    amount: Optional[Decimal] = Field(None)
+    direction: Optional[Literal['credit', 'debit']] = None
     description: Optional[str] = Field(None, min_length=1, max_length=500)
     date: Optional[str] = Field(None, max_length=50)
     time: Optional[str] = None
     user_id: Optional[int] = None
+    tx_hash: Optional[str] = None
+    status: Optional[str] = None
 
 class TransactionResponse(TransactionBase):
     id: int
@@ -100,7 +107,6 @@ class TransactionResponse(TransactionBase):
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=100)
     email: Optional[str] = None
-    gold_balance: int = Field(default=300, ge=0)
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
@@ -108,7 +114,6 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=100)
     email: Optional[str] = None
-    gold_balance: Optional[int] = Field(None, ge=0)
     password: Optional[str] = Field(None, min_length=6)
 
 class UserResponse(UserBase):

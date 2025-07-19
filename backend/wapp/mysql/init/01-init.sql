@@ -40,8 +40,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(100) NOT NULL UNIQUE,
     email VARCHAR(255) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    wallet_address VARCHAR(64) UNIQUE,
-    gold_balance INT DEFAULT 300,
+    wallet_address VARCHAR(42) UNIQUE,
     is_active BOOLEAN DEFAULT TRUE,
     is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -50,12 +49,16 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    amount VARCHAR(20) NOT NULL,
+    amount DECIMAL(18,8) NOT NULL,
+    direction ENUM('credit','debit') NOT NULL,
     description VARCHAR(500) NOT NULL,
     date VARCHAR(50) NOT NULL,
     time VARCHAR(20),
-    user_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id INT NOT NULL,
+    tx_hash VARCHAR(66),
+    status VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS event_registrations (
@@ -105,16 +108,16 @@ INSERT INTO events (id, name, category, start_datetime, end_datetime, price, loc
 (5, 'CHEFIESTA 2025: Taste of Korea by Chef\'s Choice', 'Food', '2025-03-18 10:00:00', '2025-03-18 11:00:00', 0, 'Hanoi', 5, 'Chef\'s Choice', 'upcoming', './images/chef.png');
 
 -- Insert sample transactions data
-INSERT INTO transactions (id, amount, description, date, time, user_id) VALUES
-(1, '-140', 'Purchased Black Tote with Zipper', '06/06/2025', '10:00:00', 1),
-(2, '-50', 'Swinburne Vietnam Check-in Cloud Computing Conference', '25/5/2025', '17:46', 1),
-(3, '20', 'Received by attending Event: ICATS 2025', '25/5/2025', '17:46', 1),
-(4, '10', 'Gift as full attendance for the course COS30049', '25/5/2025', '17:46', 1);
+INSERT INTO transactions (id, amount, direction, description, date, time, user_id, tx_hash, status) VALUES
+(1, -140, 'debit', 'Purchased Black Tote with Zipper', '06/06/2025', '10:00:00', 1, NULL, 'confirmed'),
+(2, -50, 'debit', 'Swinburne Vietnam Check-in Cloud Computing Conference', '25/5/2025', '17:46', 1, NULL, 'confirmed'),
+(3, 20, 'credit', 'Received by attending Event: ICATS 2025', '25/5/2025', '17:46', 1, NULL, 'confirmed'),
+(4, 10, 'credit', 'Gift as full attendance for the course COS30049', '25/5/2025', '17:46', 1, NULL, 'confirmed');
 
 -- Insert user & admin
-INSERT INTO users (id, username, email, wallet_address, password_hash, gold_balance, is_active, is_admin) VALUES
-(1, 'user', 'user@swinburne.edu.au', NULL, 'cos30049', 300, true, false),
-(2, 'admin', 'admin@swinburne.edu.au', NULL, 'cos30049', 300, true, true);
+INSERT INTO users (id, username, email, wallet_address, password_hash, is_active, is_admin) VALUES
+(1, 'user', 'user@swinburne.edu.au', NULL, 'cos30049', true, false),
+(2, 'admin', 'admin@swinburne.edu.au', NULL, 'cos30049', true, true);
 
 -- Create indexes for better performance
 CREATE INDEX idx_items_name ON items(name);
