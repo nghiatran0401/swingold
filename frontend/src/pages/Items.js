@@ -10,7 +10,7 @@ import { ethers } from "ethers";
 
 function Items({ logout }) {
   const [searchInput, setSearchInput] = useState("");
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState("price-low");
   const [filteredAndSortedItems, setFilteredAndSortedItems] = useState([]);
 
   const [selectedItem, setSelectedItem] = useState(null);
@@ -191,7 +191,7 @@ function Items({ logout }) {
                 }}
               />
 
-              {/*  Sort By  button */}
+              {/*  Sort By button */}
               <FormControl fullWidth sx={{ minWidth: { sm: 180 }, borderRadius: 2 }}>
                 <InputLabel sx={{ fontFamily: "Poppins" }}>Sort by</InputLabel>
                 <Select
@@ -208,9 +208,8 @@ function Items({ logout }) {
                     "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#ff001e" },
                   }}
                 >
-                  <MenuItem value="name">Name</MenuItem>
-                  <MenuItem value="price-low">Price: Low to High</MenuItem>
-                  <MenuItem value="price-high">Price: High to Low</MenuItem>
+                  <MenuItem value="price-low">Price: High to Low</MenuItem>
+                  <MenuItem value="price-high">Price: Low to High</MenuItem>
                 </Select>
               </FormControl>
             </Stack>
@@ -255,7 +254,7 @@ function Items({ logout }) {
                       }}
                     >
                       <img
-                        src={item.image}
+                        src={item.image_url}
                         alt={item.name}
                         style={{
                           maxWidth: "100%",
@@ -387,7 +386,7 @@ function Items({ logout }) {
                         overflow: "hidden",
                       }}
                     >
-                      <img src={selectedItem.image} alt={selectedItem.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                      <img src={selectedItem.image_url} alt={selectedItem.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                     </Box>
                   </Grid>
 

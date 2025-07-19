@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Items from "./pages/Items";
 import Events from "./pages/Events";
@@ -13,7 +13,6 @@ import { loginUser } from "./api";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const navigate = useNavigate();
 
   // Get user from localStorage
   useEffect(() => {
@@ -21,7 +20,6 @@ function App() {
     if (user) {
       setUser(JSON.parse(user));
       setIsAuthenticated(true);
-      navigate("/events");
     }
   }, []);
 
@@ -52,7 +50,7 @@ function App() {
         <Route path="/" element={<Navigate to="/events" replace />} />
 
         {/* Login route (not protected) */}
-        <Route path="/login" element={<Login login={login} />} />
+        <Route path="/login" element={<Login login={login} isAuthenticated={isAuthenticated} />} />
 
         {/* Protected routes */}
         <Route

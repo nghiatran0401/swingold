@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Card, CardContent, Typography, Button, TextField, Alert } from "@mui/material";
 
-export default function Login({ login }) {
+export default function Login({ login, isAuthenticated }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

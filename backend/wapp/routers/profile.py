@@ -9,7 +9,6 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from services.database import get_db
 import services.models as models
-from routers.auth import get_current_user
 import secrets
 import time
 from eth_account.messages import encode_defunct
@@ -21,16 +20,20 @@ router = APIRouter()
 wallet_challenges = {}
 
 @router.post("/wallet-challenge")
-def request_wallet_challenge(request, db: Session = Depends(get_db)):
+def request_wallet_challenge(request: dict):
     """
     Generate a challenge message for wallet signature verification
     """
     try:
+        address = request.get('address')
+        if not address:
+            raise HTTPException(status_code=400, detail="Wallet address is required")
+            
         # Generate a random challenge
         challenge = f"Please sign this message to verify your wallet ownership: {secrets.token_hex(16)}"
         
         # Store challenge temporarily (expires in 5 minutes)
-        wallet_challenges[request.address.lower()] = {
+        wallet_challenges[address.lower()] = {
             "challenge": challenge,
             "timestamp": int(time.time())
         }
@@ -40,12 +43,12 @@ def request_wallet_challenge(request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to generate challenge: {str(e)}")
 
 @router.post("/wallet-verify")
-def verify_wallet_signature(request, db: Session = Depends(get_db)):
+def verify_wallet_signature(request: dict):
     """
     Verify the wallet signature against the challenge
     """
     try:
-        address_lower = request.address.lower()
+        address_lower = request.get('address').lower()
         
         # Check if challenge exists
         if address_lower not in wallet_challenges:
@@ -55,8 +58,12 @@ def verify_wallet_signature(request, db: Session = Depends(get_db)):
         challenge = challenge_data["challenge"]
         
         # Verify signature
+        signature = request.get('signature')
+        if not signature:
+            raise HTTPException(status_code=400, detail="Signature is required")
+            
         message = encode_defunct(text=challenge)
-        recovered_address = Account.recover_message(message, signature=request.signature)
+        recovered_address = Account.recover_message(message, signature=signature)
         
         # Check if recovered address matches the claimed address
         if recovered_address.lower() != address_lower:
@@ -71,26 +78,41 @@ def verify_wallet_signature(request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Signature verification failed: {str(e)}")
 
 @router.patch("/wallet-address")
-def update_wallet_address(request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def update_wallet_address(request: dict, db: Session = Depends(get_db), x_user_id: str = Header(None, alias="X-User-Id")):
     """
     Update user's wallet address after successful verification
     """
     try:
+        # Validate user ID
+        if not x_user_id:
+            raise HTTPException(status_code=400, detail="User ID is required")
+            
+        user_id = int(x_user_id)
+        wallet_address = request.get('wallet_address')
+        
+        if not wallet_address:
+            raise HTTPException(status_code=400, detail="Wallet address is required")
+        
+        # Get current user from database
+        current_user = db.query(models.User).filter(models.User.id == user_id).first()
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
         # Check if wallet address is already linked to another user
         existing_user = db.query(models.User).filter(
-            models.User.wallet_address == request.wallet_address,
-            models.User.id != current_user.id
+            models.User.wallet_address == wallet_address,
+            models.User.id != user_id
         ).first()
         
         if existing_user:
             raise HTTPException(status_code=400, detail="This wallet address is already linked to another account")
         
         # Update current user's wallet address
-        current_user.wallet_address = request.wallet_address
+        current_user.wallet_address = wallet_address
         db.commit()
         db.refresh(current_user)
         
-        return current_user
+        return {"id": current_user.id, "username": current_user.username, "is_admin": current_user.is_admin, "wallet_address": current_user.wallet_address}
     
     except Exception as e:
         db.rollback()

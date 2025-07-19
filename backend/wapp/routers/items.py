@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from services.database import get_db 
-from services import models 
-from routers import auth
+import services.models as models 
+import services.schemas as schemas
 
 router = APIRouter(
     prefix="/items",
@@ -10,19 +10,23 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-"""Get all items"""
-@router.get("/")
+@router.get("/", response_model=list[schemas.ItemOut])
 def read_items(db: Session = Depends(get_db)):
-    items = db.query(models.Item).all()
-    return items
+    return db.query(models.Item).all()
 
-"""Create a new item, function for admin"""
-@router.post("/")
-def create_item(item, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user)):
-    if not current_user.is_admin:
+
+@router.post("/", response_model=schemas.ItemOut)
+def create_item(
+    item: schemas.ItemCreate,
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(..., alias="X-User-Id")
+):
+    user = db.query(models.User).filter(models.User.id == x_user_id).first()
+    if not user or not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
+
     try:
-        db_item = models.Item(**item.model_dump())
+        db_item = models.Item(**item.dict())
         db.add(db_item)
         db.commit()
         db.refresh(db_item)
@@ -30,23 +34,28 @@ def create_item(item, db: Session = Depends(get_db), current_user=Depends(auth.g
     except Exception as e:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Failed to create item: {str(e)}"
         )
 
-"""Update an existing item, function for admin"""
-@router.put("/{item_id}")
-def update_item(item_id: int, item_update, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user)):
-    if not current_user.is_admin:
+
+@router.put("/{item_id}", response_model=schemas.ItemOut)
+def update_item(
+    item_id: int,
+    item_update: schemas.ItemUpdate,
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(..., alias="X-User-Id")
+):
+    user = db.query(models.User).filter(models.User.id == x_user_id).first()
+    if not user or not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
+
     db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
     if db_item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Item not found"
-        )
+        raise HTTPException(status_code=404, detail="Item not found")
+
     try:
-        update_data = item_update.model_dump(exclude_unset=True)
+        update_data = item_update.dict(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_item, key, value)
         db.commit()
@@ -55,21 +64,25 @@ def update_item(item_id: int, item_update, db: Session = Depends(get_db), curren
     except Exception as e:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Failed to update item: {str(e)}"
         )
 
-"""Delete an existing item, function for admin"""
+
 @router.delete("/{item_id}")
-def delete_item(item_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user)):
-    if not current_user.is_admin:
+def delete_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(..., alias="X-User-Id")
+):
+    user = db.query(models.User).filter(models.User.id == x_user_id).first()
+    if not user or not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
+
     db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
     if db_item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Item not found"
-        )
+        raise HTTPException(status_code=404, detail="Item not found")
+
     try:
         db.delete(db_item)
         db.commit()
@@ -77,6 +90,6 @@ def delete_item(item_id: int, db: Session = Depends(get_db), current_user=Depend
     except Exception as e:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"Failed to delete item: {str(e)}"
         )

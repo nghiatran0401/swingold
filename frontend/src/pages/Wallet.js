@@ -3,7 +3,7 @@ import { Box, Typography, Button, Paper, Grid, Stack, Chip, Alert, Divider, Circ
 import { History, Send, GetApp, AccountBalanceWallet, CheckCircle, Link as LinkIcon } from "@mui/icons-material";
 import { ethers } from "ethers";
 import Navbar from "../components/Navbar";
-import { fetchTransactions, fetchUserBalance, requestWalletChallenge, verifyWalletSignature, updateWalletAddress, getUserProfile } from "../api";
+import { fetchTransactions, fetchUserBalance, requestWalletChallenge, verifyWalletSignature, updateWalletAddress } from "../api";
 
 function Wallet({ logout }) {
   const [currentView, setCurrentView] = useState("main");
@@ -15,17 +15,6 @@ function Wallet({ logout }) {
   const [walletStatus, setWalletStatus] = useState("");
   const [isWalletLoading, setIsWalletLoading] = useState(false);
   const [onchainBalance, setOnchainBalance] = useState(null);
-
-  // Fetch user profile from database (including wallet address)
-  const fetchUserProfileData = async () => {
-    try {
-      const profile = await getUserProfile();
-      setUserProfile(profile);
-      localStorage.setItem("userProfile", JSON.stringify(profile));
-    } catch (err) {
-      console.error("Failed to fetch user profile:", err);
-    }
-  };
 
   // Wallet verification functions
   const updateWalletStatus = (status) => {
@@ -79,6 +68,11 @@ function Wallet({ logout }) {
 
         // Update wallet address in backend
         await updateWalletAddress(selectedAddress);
+        
+        // Refresh user profile from localStorage (updateWalletAddress updates it)
+        const updatedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        setUserProfile(updatedUser);
+        
         updateWalletStatus("Wallet linked to your profile!");
       } else {
         updateWalletStatus("Signature verification failed.");
@@ -94,7 +88,11 @@ function Wallet({ logout }) {
   useEffect(() => {
     setLoading(true);
 
-    const walletAddr = userProfile?.wallet_address;
+    // Load user profile from localStorage
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    setUserProfile(user);
+
+    const walletAddr = user?.wallet_address;
     const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
     Promise.all([balancePromise, fetchTransactions(1)])
       .then(([balance, txs]) => {

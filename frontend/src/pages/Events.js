@@ -225,7 +225,7 @@ function Events({ logout }) {
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <Box sx={{ flex: 1 }}>
                           <Box sx={{ mb: 2, textAlign: "center" }}>
-                            <img src={event.image} alt={event.name} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} />
+                            <img src={event.image_url} alt={event.name} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} />
                           </Box>
 
                           <Typography

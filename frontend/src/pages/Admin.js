@@ -24,7 +24,15 @@ export default function Admin({ user }) {
     tags: "",
     status: "upcoming",
   });
-  const [newItem, setNewItem] = useState({ name: "", price: 0.0, description: "" });
+  const [newItem, setNewItem] = useState({
+    name: "",
+    description: "",
+    image_url: "",
+    price: 0.0,
+    tags: "",
+    status: "upcoming",
+    note: "",
+  });
 
   // Edit dialog state
   const [editEvent, setEditEvent] = useState(null); // event object or null
@@ -93,7 +101,16 @@ export default function Admin({ user }) {
     try {
       const item = await createItem(newItem, user.id);
       setItems([...items, item]);
-      setNewItem({ name: "", price: 0, description: "" });
+      setNewItem({
+        name: "",
+        description: "",
+        image_url: "",
+        price: 0.0,
+        tags: "",
+        status: "upcoming",
+        note: "",
+      });
+      setCreateDialogOpen(false);
     } catch (e) {
       setError(e.message);
     }
@@ -263,11 +280,28 @@ export default function Admin({ user }) {
               </TextField>
             </Stack>
           ) : (
-            <Stack direction="column" spacing={1} mt={1}>
-              <TextField label="Name" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} size="small" />
-              <TextField label="Price" type="number" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: e.target.value === "" ? 0.0 : parseFloat(e.target.value) })} size="small" />
-              <TextField label="Description" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} size="small" />
-            </Stack>
+            createDialogOpen === "item" && (
+              <Stack direction="column" spacing={1} mt={1}>
+                <TextField label="Name" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} size="small" required />
+                <TextField label="Description" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} size="small" multiline minRows={2} />
+                <TextField label="Image URL" value={newItem.image_url} onChange={(e) => setNewItem({ ...newItem, image_url: e.target.value })} size="small" />
+                <TextField
+                  label="Price (Gold)"
+                  type="number"
+                  value={newItem.price === undefined ? "" : newItem.price}
+                  onChange={(e) => setNewItem({ ...newItem, price: e.target.value === "" ? 0.0 : parseFloat(e.target.value) })}
+                  size="small"
+                />
+                <TextField label="Tags (comma-separated)" value={newItem.tags} onChange={(e) => setNewItem({ ...newItem, tags: e.target.value })} size="small" placeholder="tag1, tag2, tag3" />
+                <TextField label="Status" select value={newItem.status || "upcoming"} onChange={(e) => setNewItem({ ...newItem, status: e.target.value })} size="small" SelectProps={{ native: true }}>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </TextField>
+                <TextField label="Note" value={newItem.note} onChange={(e) => setNewItem({ ...newItem, note: e.target.value })} size="small" multiline minRows={2} placeholder="Internal notes or additional information" />
+              </Stack>
+            )
           )}
         </DialogContent>
         <DialogActions>
@@ -343,16 +377,25 @@ export default function Admin({ user }) {
             </Stack>
           )}
           {editType === "item" && editItem && (
-            <Stack spacing={2} mt={1}>
-              <TextField label="Name" value={editItem.name} onChange={(e) => setEditItem({ ...editItem, name: e.target.value })} fullWidth />
+            <Stack direction="column" spacing={1} mt={1}>
+              <TextField label="Name" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} size="small" required />
+              <TextField label="Description" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} size="small" multiline minRows={2} />
+              <TextField label="Image URL" value={newItem.image_url} onChange={(e) => setNewItem({ ...newItem, image_url: e.target.value })} size="small" />
               <TextField
-                label="Price"
+                label="Price (Gold)"
                 type="number"
-                value={editItem.price === undefined ? "" : editItem.price}
-                onChange={(e) => setEditItem({ ...editItem, price: e.target.value === "" ? 0.0 : parseFloat(e.target.value) })}
-                fullWidth
+                value={newItem.price === undefined ? "" : newItem.price}
+                onChange={(e) => setNewItem({ ...newItem, price: e.target.value === "" ? 0.0 : parseFloat(e.target.value) })}
+                size="small"
               />
-              <TextField label="Description" value={editItem.description} onChange={(e) => setEditItem({ ...editItem, description: e.target.value })} fullWidth />
+              <TextField label="Tags (comma-separated)" value={newItem.tags} onChange={(e) => setNewItem({ ...newItem, tags: e.target.value })} size="small" placeholder="tag1, tag2, tag3" />
+              <TextField label="Status" select value={newItem.status || "upcoming"} onChange={(e) => setNewItem({ ...newItem, status: e.target.value })} size="small" SelectProps={{ native: true }}>
+                <option value="upcoming">Upcoming</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </TextField>
+              <TextField label="Note" value={newItem.note} onChange={(e) => setNewItem({ ...newItem, note: e.target.value })} size="small" multiline minRows={2} placeholder="Internal notes or additional information" />
             </Stack>
           )}
         </DialogContent>
