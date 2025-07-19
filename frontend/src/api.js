@@ -160,3 +160,72 @@ export const deleteItem = async (itemId, userId) => {
   if (!res.ok) throw new Error("Failed to delete item");
   return res.json();
 };
+
+// ===== WALLET API FUNCTIONS =====
+
+// Request wallet challenge for signature verification
+export const requestWalletChallenge = async (address) => {
+  const url = `${API_BASE_URL}/wallet-challenge`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to request wallet challenge");
+  }
+  return res.json();
+};
+
+// Verify wallet signature
+export const verifyWalletSignature = async (address, signature) => {
+  const url = `${API_BASE_URL}/wallet-verify`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address, signature }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to verify wallet signature");
+  }
+  return res.json();
+};
+
+// Update user's wallet address
+export const updateWalletAddress = async (walletAddress) => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const url = `${API_BASE_URL}/wallet-address`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": user.id?.toString() || "1",
+    },
+    body: JSON.stringify({ wallet_address: walletAddress }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to update wallet address");
+  }
+  return res.json();
+};
+
+// Get user profile information
+export const getUserProfile = async () => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const url = `${API_BASE_URL}/profile`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": user.id?.toString() || "1",
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to get user profile");
+  }
+  return res.json();
+};

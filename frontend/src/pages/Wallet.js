@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Box, Typography, Button, Paper, Grid, Stack } from "@mui/material";
-import { History, Send, GetApp } from "@mui/icons-material";
+import { Box, Typography, Button, Paper, Grid, Stack, Chip, Alert, Divider, CircularProgress } from "@mui/material";
+import { History, Send, GetApp, AccountBalanceWallet, CheckCircle, Link as LinkIcon } from "@mui/icons-material";
+import { ethers } from "ethers";
 import Navbar from "../components/Navbar";
-import { fetchTransactions, fetchUserBalance } from "../api";
+import { fetchTransactions, fetchUserBalance, requestWalletChallenge, verifyWalletSignature, updateWalletAddress, getUserProfile } from "../api";
 
 function Wallet({ logout }) {
   const [currentView, setCurrentView] = useState("main");
@@ -10,16 +11,96 @@ function Wallet({ logout }) {
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [walletStatus, setWalletStatus] = useState("");
+  const [isWalletLoading, setIsWalletLoading] = useState(false);
+
+  // Fetch user profile from database (including wallet address)
+  const fetchUserProfileData = async () => {
+    try {
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+    } catch (err) {
+      console.error("Failed to fetch user profile:", err);
+    }
+  };
+
+  // Wallet verification functions
+  const updateWalletStatus = (status) => {
+    setWalletStatus(status);
+  };
+
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+      alert("MetaMask not detected. Please install MetaMask!");
+      return;
+    }
+
+    try {
+      setIsWalletLoading(true);
+      updateWalletStatus("Connecting to MetaMask...");
+
+      // Connect to MetaMask
+      const [selectedAddress] = await window.ethereum.request({ method: "eth_requestAccounts" });
+      updateWalletStatus("Wallet connected successfully!");
+
+      // Perform full verification flow
+      await performFullVerification(selectedAddress);
+    } catch (err) {
+      console.error("Wallet connection error:", err);
+      const errorMessage = err.message || err.toString() || "Unknown error occurred";
+      updateWalletStatus("Error: " + errorMessage);
+      alert("Wallet connection failed: " + errorMessage);
+    } finally {
+      setIsWalletLoading(false);
+    }
+  };
+
+  const performFullVerification = async (selectedAddress) => {
+    try {
+      updateWalletStatus("Requesting challenge from server...");
+
+      // Request challenge from backend
+      const challengeData = await requestWalletChallenge(selectedAddress);
+      updateWalletStatus("Challenge received. Please sign with MetaMask...");
+
+      // Ask MetaMask to sign the challenge
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const signature = await signer.signMessage(challengeData.challenge);
+      updateWalletStatus("Signature created. Verifying...");
+
+      // Send signature to backend for verification
+      const verifyData = await verifyWalletSignature(selectedAddress, signature);
+      if (verifyData.verified) {
+        updateWalletStatus("Wallet verified! Updating profile...");
+
+        // Update wallet address in backend
+        await updateWalletAddress(selectedAddress);
+        updateWalletStatus("Wallet linked to your profile!");
+        // Refresh user profile to get updated wallet address from database
+        fetchUserProfileData();
+      } else {
+        updateWalletStatus("Signature verification failed.");
+      }
+    } catch (err) {
+      console.error("Wallet verification error:", err);
+      const errorMessage = err.message || err.toString() || "Verification failed";
+      updateWalletStatus("Error: " + errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchUserBalance(1), fetchTransactions(1)])
+    Promise.all([fetchUserBalance(1), fetchTransactions(1), fetchUserProfileData()])
       .then(([balance, txs]) => {
         setGoldBalance(balance);
         setTransactionHistory(txs);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line
   }, []);
 
   const cardBase = {
@@ -28,8 +109,8 @@ function Wallet({ logout }) {
     backgroundColor: "#ffffff",
     border: "1px solid #e0e0e0",
   };
-// Displaying current gold balance box
 
+  // Displaying current gold balance box
   const renderMainView = () => (
     <Grid container spacing={4} alignItems="center" justifyContent="center">
       <Grid item xs={12} md={5}>
@@ -43,9 +124,6 @@ function Wallet({ logout }) {
           </Typography>
         </Box>
       </Grid>
-
-          {/* History, Give Gold and Received Gold Button */}
-
       <Grid item xs={12} md={7}>
         <Stack spacing={3}>
           <WalletButton label="View history" icon={<History />} onClick={() => setCurrentView("history")} />
@@ -56,7 +134,6 @@ function Wallet({ logout }) {
     </Grid>
   );
 
-  // View user's purchasing statistics (will be dynamic in )
   const renderStatisticsView = () => (
     <Grid container spacing={4} alignItems="center" justifyContent="center">
       <Grid item xs={12} md={6}>
@@ -90,9 +167,6 @@ function Wallet({ logout }) {
           </Typography>
         </Paper>
       </Grid>
-
-      {/* Transaction History view */}
-
       <Grid item xs={12} md={6}>
         <Paper elevation={3} sx={{ ...cardBase, minHeight: "400px" }}>
           <Typography variant="h5" sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }}>
@@ -122,7 +196,7 @@ function Wallet({ logout }) {
       </Paper>
     </Grid>
   );
-  // Transaction History Card that display single transaction
+
   const TransactionCard = ({ tx, detailed }) => (
     <Paper
       elevation={detailed ? 2 : 1}
@@ -141,8 +215,6 @@ function Wallet({ logout }) {
       </Box>
     </Paper>
   );
-
-  //  Wallet button
 
   const WalletButton = ({ label, icon, onClick }) => (
     <Button
@@ -171,16 +243,16 @@ function Wallet({ logout }) {
     </Button>
   );
 
-  // Error message to notify users
   if (loading) return <div>Loading wallet...</div>;
   if (error) return <div>Error: {error}</div>;
 
+  // Top-level wallet connection status
+  const isWalletConnected = !!userProfile?.wallet_address;
+  const shortWallet = isWalletConnected ? `${userProfile.wallet_address.slice(0, 6)}...${userProfile.wallet_address.slice(-4)}` : null;
 
-  // Wallet page view
   return (
     <>
       <Navbar logout={logout} />
-
       <Box sx={{ backgroundColor: "#f3f3f3", minHeight: "100vh", pt: 10, pb: 4 }}>
         <Typography
           variant="h4"
@@ -194,39 +266,115 @@ function Wallet({ logout }) {
         >
           My Wallet
         </Typography>
-
         <Box sx={{ maxWidth: 1100, mx: "auto", p: 4, backgroundColor: "#fff", borderRadius: "16px" }}>
-          <Box sx={{ mb: 4, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
-            {[
-              { label: "Wallet", view: "main" },
-              { label: "Statistics", view: "statistics" },
-            ].map(({ label, view }) => (
-              <Button
-                key={view}
-                onClick={() => setCurrentView(view)}
-                variant={currentView === view ? "contained" : "outlined"}
+          {/* Top-level wallet connection status */}
+          <Box sx={{ mb: 4, display: "flex", justifyContent: "center" }}>
+            {isWalletConnected ? (
+              <Chip
+                icon={<CheckCircle />}
+                label={`Connected: ${shortWallet}`}
+                color="success"
+                variant="filled"
                 sx={{
-                  fontFamily: "Poppins",
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  py: 2,
+                  px: 2,
+                  backgroundColor: "rgba(76, 175, 80, 0.9)",
+                  color: "white",
+                  "& .MuiChip-icon": { fontSize: "18px", color: "white" },
+                  "& .MuiChip-label": { px: 1 },
+                }}
+              />
+            ) : (
+              <Button
+                variant="contained"
+                size="large"
+                onClick={connectWallet}
+                disabled={isWalletLoading}
+                startIcon={isWalletLoading ? <CircularProgress size={20} sx={{ color: "white" }} /> : <AccountBalanceWallet />}
+                sx={{
+                  background: isWalletLoading ? "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)" : "linear-gradient(45deg, #FF6B6B 30%, #4ECDC4 90%)",
+                  border: 0,
+                  borderRadius: 3,
+                  boxShadow: isWalletLoading ? "0 2px 8px rgba(158, 158, 158, 0.3)" : "0 3px 15px rgba(255, 107, 107, 0.4)",
+                  color: "white",
+                  height: 56,
+                  padding: "0 30px",
+                  fontSize: "16px",
+                  fontWeight: "bold",
                   textTransform: "none",
-                  backgroundColor: currentView === view ? "#ff001e" : "transparent",
-                  borderColor: "#ff001e",
-                  color: currentView === view ? "#ffffff" : "#ff001e",
-                  minWidth: 120,
-                  fontWeight: 600,
-                  boxShadow: currentView === view ? "0 3px 6px rgba(0,0,0,0.2)" : "none",
+                  transition: "all 0.3s ease-in-out",
                   "&:hover": {
-                    backgroundColor: currentView === view ? "#d4001a" : "rgba(255, 0, 30, 0.08)",
+                    background: isWalletLoading ? "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)" : "linear-gradient(45deg, #FF5252 30%, #26C6DA 90%)",
+                    boxShadow: isWalletLoading ? "0 2px 8px rgba(158, 158, 158, 0.3)" : "0 4px 20px rgba(255, 82, 82, 0.5)",
+                    transform: isWalletLoading ? "none" : "translateY(-2px)",
+                  },
+                  "&:disabled": {
+                    background: "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)",
+                    color: "rgba(255, 255, 255, 0.7)",
+                    cursor: "not-allowed",
                   },
                 }}
               >
-                {label}
+                <Typography variant="button" fontWeight="bold">
+                  {isWalletLoading ? "Connecting..." : "Connect Wallet"}
+                </Typography>
               </Button>
-            ))}
+            )}
           </Box>
 
-          {currentView === "main" && renderMainView()}
-          {currentView === "history" && renderHistoryView()}
-          {currentView === "statistics" && renderStatisticsView()}
+          {/* Only show wallet features if connected */}
+          {isWalletConnected && (
+            <>
+              <Box sx={{ mb: 4, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
+                {[
+                  { label: "Wallet", view: "main" },
+                  { label: "Statistics", view: "statistics" },
+                ].map(({ label, view }) => (
+                  <Button
+                    key={view}
+                    onClick={() => setCurrentView(view)}
+                    variant={currentView === view ? "contained" : "outlined"}
+                    sx={{
+                      fontFamily: "Poppins",
+                      textTransform: "none",
+                      backgroundColor: currentView === view ? "#ff001e" : "transparent",
+                      borderColor: "#ff001e",
+                      color: currentView === view ? "#ffffff" : "#ff001e",
+                      minWidth: 120,
+                      fontWeight: 600,
+                      boxShadow: currentView === view ? "0 3px 6px rgba(0,0,0,0.2)" : "none",
+                      "&:hover": {
+                        backgroundColor: currentView === view ? "#d4001a" : "rgba(255, 0, 30, 0.08)",
+                      },
+                    }}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </Box>
+              {currentView === "main" && renderMainView()}
+              {currentView === "history" && renderHistoryView()}
+              {currentView === "statistics" && renderStatisticsView()}
+            </>
+          )}
+
+          {/* Wallet status messages */}
+          {walletStatus && (
+            <Alert
+              severity={walletStatus.includes("Error") ? "error" : walletStatus.includes("linked") ? "success" : "info"}
+              sx={{
+                mt: 3,
+                backgroundColor: "rgba(255, 255, 255, 0.15)",
+                color: "#2A2828",
+                "& .MuiAlert-icon": { color: "#2A2828" },
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <Typography variant="body2">{walletStatus}</Typography>
+            </Alert>
+          )}
         </Box>
       </Box>
     </>

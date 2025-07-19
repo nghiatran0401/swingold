@@ -113,6 +113,7 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    wallet_address: Optional[str] = None
     is_active: bool
     is_admin: bool
     created_at: Optional[datetime] = None
@@ -130,3 +131,14 @@ class ListResponse(BaseModel):
     total: int
     page: int
     size: int
+
+# Wallet Schemas
+class WalletChallengeRequest(BaseModel):
+    address: str = Field(..., min_length=42, max_length=42, description="Ethereum wallet address")
+
+class WalletVerifyRequest(BaseModel):
+    address: str = Field(..., min_length=42, max_length=42, description="Ethereum wallet address")
+    signature: str = Field(..., description="Signed message signature")
+
+class WalletAddressUpdate(BaseModel):
+    wallet_address: str = Field(..., min_length=42, max_length=42, description="Ethereum wallet address")

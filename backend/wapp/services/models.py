@@ -59,6 +59,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=True)
     password_hash = Column(String(255), nullable=False)
     gold_balance = Column(Integer, default=300)
+    wallet_address = Column(String(42), nullable=True)  # Ethereum address (42 chars)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
