@@ -6,34 +6,31 @@ from sqlalchemy.sql import func
 from services.database import Base
 import enum
 
-# Data structure of Items table
 class Item(Base):
     __tablename__ = "items"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    image = Column(String(500), nullable=True)
-    alt = Column(String(255), nullable=True)
-    price = Column(Integer, nullable=False, default=0)
-    favorite = Column(Boolean, default=False)
-    size = Column(JSON, nullable=True)
+    image = Column("image_url", String(500), nullable=True)
+    price = Column(Numeric(10, 1), nullable=False, default=0.0)
+    favorite = Column("favored", Boolean, default=False)
+    size = Column("tags", JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-# Structure of Event table
 class Event(Base):
     __tablename__ = "events"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(500), nullable=False)
-    fee = Column(String(10), nullable=False, default="0")
-    earn = Column(String(10), nullable=False, default="0")
-    date = Column(String(100), nullable=False)
+    name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    month = Column(String(20), nullable=False)
+    date = Column("start_datetime", DateTime, nullable=False)
+    end_date = Column("end_datetime", DateTime, nullable=True)
+    image = Column("image_url", String(500), nullable=True)
     location = Column(String(255), nullable=True)
-    enroll = Column(Boolean, default=False)
-    end = Column(Boolean, default=False)
-    seats = Column(Integer, nullable=True)
+    category = Column(String(100), nullable=True)
+    status = Column(String(20), nullable=True)
+    price = Column(Numeric(10, 1), nullable=True)
+    seats = Column("seats_available", Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

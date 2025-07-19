@@ -39,8 +39,21 @@ function Events({ logout }) {
   }, []);
 
   const filteredEvents = useMemo(() => {
-    if (!searchTerm) return events;
-    return events.filter((event) => (event.name && event.name.toLowerCase().includes(searchTerm.toLowerCase())) || (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())));
+    return events
+      .map((event) => ({
+        ...event,
+        date: event.date || event.start_datetime || "",
+        end_date: event.end_date || event.end_datetime || "",
+        image: event.image || "",
+        name: event.name || "",
+        description: event.description || "",
+        location: event.location || "",
+        category: event.category || "",
+        status: event.status || "",
+        price: event.price ?? "",
+        seats: event.seats ?? "",
+      }))
+      .filter((event) => (event.name && event.name.toLowerCase().includes(searchTerm.toLowerCase())) || (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())));
   }, [events, searchTerm]);
 
   const handleEnrollClick = (eventId) => {
@@ -188,6 +201,10 @@ function Events({ logout }) {
                     >
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <Box sx={{ flex: 1 }}>
+                          <Box sx={{ mb: 2, textAlign: "center" }}>
+                            <img src={event.image} alt={event.name} style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 8 }} />
+                          </Box>
+
                           <Typography
                             variant="h6"
                             sx={{
@@ -241,38 +258,36 @@ function Events({ logout }) {
                               </Typography>
                             )}
 
-                            {event.earn && parseInt(event.earn) > 0 && (
+                            {event.category && (
                               <Typography
                                 variant="body2"
                                 sx={{
                                   fontFamily: "Poppins",
-                                  color: "#ff001e",
+                                  color: "#666",
                                   fontSize: "12px",
-                                  fontWeight: "600",
                                 }}
                               >
-                                🏆 Earn {event.earn} Gold
+                                🏷️ {event.category}
                               </Typography>
                             )}
 
-                            {event.seats && parseInt(event.seats) > 0 && (
+                            {event.status && (
                               <Typography
                                 variant="body2"
                                 sx={{
                                   fontFamily: "Poppins",
-                                  color: "#ff001e",
+                                  color: "#666",
                                   fontSize: "12px",
-                                  fontWeight: "600",
                                 }}
                               >
-                                ✅ {event.seats - registeredSeats} seats left
+                                ⚙️ {event.status}
                               </Typography>
                             )}
                           </Box>
                         </Box>
 
                         <Box sx={{ ml: 3, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                          {event.fee === "0" ? (
+                          {event.price === 0 ? (
                             <Chip
                               label="Free"
                               clickable={false}
@@ -288,7 +303,7 @@ function Events({ logout }) {
                             />
                           ) : (
                             <Chip
-                              label={`${event.fee} Gold`}
+                              label={`${event.price} Gold`}
                               clickable={false}
                               onClick={() => {}}
                               sx={{
@@ -300,6 +315,22 @@ function Events({ logout }) {
                                 minWidth: "80px",
                               }}
                             />
+                          )}
+
+                          {event.end_date && (
+                            <Typography variant="body2" sx={{ fontFamily: "Poppins", color: "#666", fontSize: "12px", mb: 1 }}>
+                              Ends: {event.end_date.split("T")[0]}
+                            </Typography>
+                          )}
+                          {event.seats && (
+                            <Typography variant="body2" sx={{ fontFamily: "Poppins", color: "#666", fontSize: "12px", mb: 1 }}>
+                              Seats: {event.seats}
+                            </Typography>
+                          )}
+                          {event.tags && (
+                            <Typography variant="body2" sx={{ fontFamily: "Poppins", color: "#666", fontSize: "12px", mb: 1 }}>
+                              Tags: {event.tags}
+                            </Typography>
                           )}
 
                           {event.end ? (

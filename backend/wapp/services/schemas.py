@@ -6,13 +6,11 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from decimal import Decimal
 
-# Item Schemas
 class ItemBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
+    name: str
     description: Optional[str] = None
     image: Optional[str] = None
-    alt: Optional[str] = None
-    price: int = Field(..., ge=0)
+    price: float
     favorite: bool = False
     size: Optional[List[str]] = None
 
@@ -20,11 +18,10 @@ class ItemCreate(ItemBase):
     pass
 
 class ItemUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    name: Optional[str] = None
     description: Optional[str] = None
     image: Optional[str] = None
-    alt: Optional[str] = None
-    price: Optional[int] = Field(None, ge=0)
+    price: Optional[float] = None
     favorite: Optional[bool] = None
     size: Optional[List[str]] = None
 
@@ -32,43 +29,40 @@ class ItemResponse(ItemBase):
     id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    
     class Config:
         from_attributes = True
 
-# Event Schemas
 class EventBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=500)
-    fee: str = Field(..., max_length=10)
-    earn: str = Field(..., max_length=10)
-    date: str = Field(..., max_length=100)
+    name: str
     description: Optional[str] = None
-    month: str = Field(..., max_length=20)
+    date: str
+    end_date: Optional[str] = None
+    image: Optional[str] = None
     location: Optional[str] = None
-    enroll: bool = False
-    end: bool = False
-    seats: Optional[int] = Field(None, ge=0)
+    category: Optional[str] = None
+    status: Optional[str] = None
+    price: Optional[float] = None
+    seats: Optional[int] = None
 
 class EventCreate(EventBase):
-   pass
+    pass
 
 class EventUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=500)
-    fee: Optional[str] = Field(None, max_length=10)
-    earn: Optional[str] = Field(None, max_length=10)
-    date: Optional[str] = Field(None, max_length=100)
+    name: Optional[str] = None
     description: Optional[str] = None
-    month: Optional[str] = Field(None, max_length=20)
+    date: Optional[str] = None
+    end_date: Optional[str] = None
+    image: Optional[str] = None
     location: Optional[str] = None
-    enroll: Optional[bool] = None
-    end: Optional[bool] = None
-    seats: Optional[int] = Field(None, ge=0)
+    category: Optional[str] = None
+    status: Optional[str] = None
+    price: Optional[float] = None
+    seats: Optional[int] = None
 
 class EventResponse(EventBase):
     id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    
     class Config:
         from_attributes = True
 

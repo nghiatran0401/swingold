@@ -101,18 +101,11 @@ INSERT INTO items (id, name, description, image_url, price, favored, tags) VALUE
 
 -- Insert sample events data
 INSERT INTO events (id, name, category, start_datetime, end_datetime, price, location, seats_available, tags, status, image_url) VALUES
-(1, '[AWS] Build MCP Servers with Amazon Q CLI and Rust Programming', 'Tech', '2025-06-25 13:00:00', '2025-06-25 14:00:00', 0, 'Hanoi', 5, 'AWS, MCP, Rust', 'upcoming', './images/aws.png'),
-(2, 'Special Sharing Session with Shark Nguyen Hoa Binh', 'Tech', '2025-05-07 14:00:00', '2025-05-07 15:00:00', 0, 'DaNang', 5, 'Shark Nguyen Hoa Binh', 'upcoming', './images/shark.png'),
-(3, 'Swinburne Arena of Valor National Community Day', 'Gaming', '2025-04-27 14:00:00', '2025-04-27 15:00:00', 0, 'Vietnam', 5, 'Arena of Valor', 'upcoming', './images/valor.png'),
-(4, 'SWINBIRTH 6th: SWINCHELLA 2025', 'Party', '2025-04-12 15:00:00', '2025-04-12 16:00:00', 0, 'Hanoi, HCM, DaNang', 5, 'SWINBIRTH, SWINCHELLA', 'upcoming', './images/swinbirth.png'),
-(5, 'CHEFIESTA 2025: Taste of Korea by Chef\'s Choice', 'Food', '2025-03-18 10:00:00', '2025-03-18 11:00:00', 0, 'Hanoi', 5, 'Chef\'s Choice', 'upcoming', './images/chef.png');
-
--- Insert sample transactions data
-INSERT INTO transactions (id, amount, direction, description, date, time, user_id, tx_hash, status) VALUES
-(1, -140, 'debit', 'Purchased Black Tote with Zipper', '06/06/2025', '10:00:00', 1, NULL, 'confirmed'),
-(2, -50, 'debit', 'Swinburne Vietnam Check-in Cloud Computing Conference', '25/5/2025', '17:46', 1, NULL, 'confirmed'),
-(3, 20, 'credit', 'Received by attending Event: ICATS 2025', '25/5/2025', '17:46', 1, NULL, 'confirmed'),
-(4, 10, 'credit', 'Gift as full attendance for the course COS30049', '25/5/2025', '17:46', 1, NULL, 'confirmed');
+(1, '[AWS] Build MCP Servers with Amazon Q CLI and Rust Programming', 'Tech', '2025-06-25 13:00:00', '2025-06-25 14:00:00', 0, 'Hanoi', 5, 'AWS, MCP, Rust', 'upcoming', '/images/coursera.png'),
+(2, 'Special Sharing Session with Shark Nguyen Hoa Binh', 'Tech', '2025-05-07 14:00:00', '2025-05-07 15:00:00', 0, 'DaNang', 5, 'Shark Nguyen Hoa Binh', 'upcoming', '/images/coursera.png'),
+(3, 'Swinburne Arena of Valor National Community Day', 'Gaming', '2025-04-27 14:00:00', '2025-04-27 15:00:00', 0, 'Vietnam', 5, 'Arena of Valor', 'upcoming', '/images/coursera.png'),
+(4, 'SWINBIRTH 6th: SWINCHELLA 2025', 'Party', '2025-04-12 15:00:00', '2025-04-12 16:00:00', 0, 'Hanoi, HCM, DaNang', 5, 'SWINBIRTH, SWINCHELLA', 'upcoming', '/images/coursera.png'),
+(5, 'CHEFIESTA 2025: Taste of Korea by Chef\'s Choice', 'Food', '2025-03-18 10:00:00', '2025-03-18 11:00:00', 0, 'Hanoi', 5, 'Chef\'s Choice', 'upcoming', '/images/coursera.png');
 
 -- Insert user & admin
 INSERT INTO users (id, username, email, wallet_address, password_hash, is_active, is_admin) VALUES
@@ -122,5 +115,3 @@ INSERT INTO users (id, username, email, wallet_address, password_hash, is_active
 -- Create indexes for better performance
 CREATE INDEX idx_items_name ON items(name);
 CREATE INDEX idx_events_name ON events(name);
-CREATE INDEX idx_transactions_user_id ON transactions(user_id);
-CREATE INDEX idx_transactions_created_at ON transactions(created_at);

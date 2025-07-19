@@ -31,13 +31,14 @@ export const fetchTransactions = async (userId = 1) => {
   return res.json();
 };
 
-// Get user balance
-export const fetchUserBalance = async (userId = 1) => {
-  let url = `${API_BASE_URL}/transactions/user/${userId}/balance`;
+// Get user on-chain balance
+export const fetchUserBalance = async (walletAddress) => {
+  if (!walletAddress) throw new Error("No wallet address provided");
+  let url = `${API_BASE_URL}/transactions/onchain/balance/${walletAddress}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch user balance");
   const data = await res.json();
-  return data.gold_balance;
+  return data.balance;
 };
 
 // Toggle favorite item
@@ -76,7 +77,13 @@ export const loginUser = async (username, password) => {
     const error = await res.json();
     throw new Error(error.detail || "Login failed");
   }
-  return res.json();
+  const user = await res.json();
+  // Save user to localStorage
+  localStorage.setItem("user", JSON.stringify(user));
+  // Fetch and save latest profile
+  const profile = await getUserProfile();
+  localStorage.setItem("userProfile", JSON.stringify(profile));
+  return user;
 };
 
 // Post request to Event API to create new event
@@ -226,6 +233,23 @@ export const getUserProfile = async () => {
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.detail || "Failed to get user profile");
+  }
+  const profile = await res.json();
+  localStorage.setItem("userProfile", JSON.stringify(profile));
+  return profile;
+};
+
+// Record on-chain purchase
+export const recordOnchainPurchase = async (purchaseData) => {
+  const url = `${API_BASE_URL}/transactions/onchain/purchase`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(purchaseData),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to record on-chain purchase");
   }
   return res.json();
 };

@@ -14,12 +14,14 @@ function Wallet({ logout }) {
   const [userProfile, setUserProfile] = useState(null);
   const [walletStatus, setWalletStatus] = useState("");
   const [isWalletLoading, setIsWalletLoading] = useState(false);
+  const [onchainBalance, setOnchainBalance] = useState(null);
 
   // Fetch user profile from database (including wallet address)
   const fetchUserProfileData = async () => {
     try {
       const profile = await getUserProfile();
       setUserProfile(profile);
+      localStorage.setItem("userProfile", JSON.stringify(profile));
     } catch (err) {
       console.error("Failed to fetch user profile:", err);
     }
@@ -79,7 +81,7 @@ function Wallet({ logout }) {
         await updateWalletAddress(selectedAddress);
         updateWalletStatus("Wallet linked to your profile!");
         // Refresh user profile to get updated wallet address from database
-        fetchUserProfileData();
+        await fetchUserProfileData();
       } else {
         updateWalletStatus("Signature verification failed.");
       }
@@ -93,13 +95,18 @@ function Wallet({ logout }) {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchUserBalance(1), fetchTransactions(1), fetchUserProfileData()])
-      .then(([balance, txs]) => {
-        setGoldBalance(balance);
-        setTransactionHistory(txs);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    // Always fetch latest profile from backend
+    fetchUserProfileData().then(() => {
+      const walletAddr = userProfile?.wallet_address;
+      const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
+      Promise.all([balancePromise, fetchTransactions(1)])
+        .then(([balance, txs]) => {
+          setOnchainBalance(balance);
+          setTransactionHistory(txs);
+        })
+        .catch((err) => setError(err.message))
+        .finally(() => setLoading(false));
+    });
     // eslint-disable-next-line
   }, []);
 
@@ -110,17 +117,17 @@ function Wallet({ logout }) {
     border: "1px solid #e0e0e0",
   };
 
-  // Displaying current gold balance box
+  // Displaying current on-chain balance box
   const renderMainView = () => (
     <Grid container spacing={4} alignItems="center" justifyContent="center">
       <Grid item xs={12} md={5}>
         <Box sx={{ ...cardBase, textAlign: "center", minHeight: "400px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", px: 2 }}>
           <Box component="img" src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" alt="Gold Coin" sx={{ width: 120, height: 120, mb: 3 }} />
           <Typography variant="h2" sx={{ fontFamily: "Poppins", fontWeight: 800, color: "#2A2828", mb: 1 }}>
-            {goldBalance}
+            {onchainBalance !== null ? onchainBalance : "-"}
           </Typography>
           <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#444" }}>
-            Gold
+            On-chain Balance
           </Typography>
         </Box>
       </Grid>

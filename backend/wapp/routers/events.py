@@ -5,6 +5,7 @@ from services.database import get_db
 import services.models as models
 import services.schemas as schemas 
 from routers.auth import get_current_user
+from datetime import datetime
 
 router = APIRouter(
     prefix="/events",
@@ -18,7 +19,7 @@ router = APIRouter(
 def read_events(
     skip: int = Query(0, ge=0, description="Number of events to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of events to return"),
-    month: Optional[str] = Query(None, description="Filter by month"),
+    month: Optional[str] = Query(None, description="Filter by month (YYYY-MM)"),
     search: Optional[str] = Query(None, description="Search term for name or description"),
     db: Session = Depends(get_db)
 ):
@@ -26,7 +27,8 @@ def read_events(
     query = db.query(models.Event)
     
     if month and month.lower() != "all":
-        query = query.filter(models.Event.month == month)
+        # Filter by month extracted from start_datetime
+        query = query.filter(models.Event.date.startswith(month))
     
     if search:
         search_term = f"%{search}%"
@@ -36,7 +38,23 @@ def read_events(
         )
     
     events = query.offset(skip).limit(limit).all()
-    return events
+    # Convert date to string for Pydantic
+    def event_to_dict(event):
+        d = event.__dict__.copy()
+        for field in ['date', 'end_date', 'created_at', 'updated_at']:
+            if field in d and d[field]:
+                if isinstance(d[field], datetime):
+                    d[field] = d[field].isoformat()
+        img = d.get('image')
+        if img:
+            if img.startswith('http') or img.startswith('/'):  # already valid
+                d['image'] = img
+            elif img.startswith('./'):
+                d['image'] = img.replace('./', '/images/') if not img.startswith('./images/') else img.replace('./', '/')
+            else:
+                d['image'] = f'/images/{img}'
+        return d
+    return [event_to_dict(e) for e in events]
 
 # 2. Get single events based on id
 
@@ -49,7 +67,10 @@ def read_event(event_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, 
             detail="Event not found"
         )
-    return db_event
+    d = db_event.__dict__.copy()
+    if isinstance(d['date'], datetime):
+        d['date'] = d['date'].strftime('%Y-%m-%d %H:%M:%S')
+    return d
 
 # 3. Create events for admin
 
@@ -147,6 +168,19 @@ def toggle_enrollment(event_id: int, db: Session = Depends(get_db)):
 
 @router.get("/months/list", response_model=List[str])
 def get_available_months(db: Session = Depends(get_db)):
-    """Get list of available months for filtering"""
-    months = db.query(models.Event.month).distinct().all()
-    return [month[0] for month in months if month[0]]
+    """Get list of available months for filtering (YYYY-MM)"""
+    events = db.query(models.Event).all()
+    months = set()
+    for event in events:
+        dt = event.date
+        if isinstance(dt, datetime):
+            month_str = dt.strftime('%Y-%m')
+        elif isinstance(dt, str):
+            try:
+                month_str = datetime.fromisoformat(dt).strftime('%Y-%m')
+            except Exception:
+                continue
+        else:
+            continue
+        months.add(month_str)
+    return sorted(list(months))

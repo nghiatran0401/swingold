@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { fetchItems, toggleItemFavorite } from "../api";
+import { fetchItems, toggleItemFavorite, recordOnchainPurchase } from "../api";
 import Navbar from "../components/Navbar";
-import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Alert } from "@mui/material";
 import { Search, FilterList, Favorite, FavoriteBorder } from "@mui/icons-material";
 import debounce from "lodash.debounce";
+import { ethers } from "ethers";
 
 function Items({ logout }) {
   const [searchInput, setSearchInput] = useState("");
@@ -17,6 +18,20 @@ function Items({ logout }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Wallet state
+  const [walletAddress, setWalletAddress] = useState("");
+  const [txStatus, setTxStatus] = useState("");
+  const [txHash, setTxHash] = useState("");
+  const [isTxLoading, setIsTxLoading] = useState(false);
+
+  // On mount, try to get wallet from MetaMask
+  useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.request({ method: "eth_accounts" }).then((accounts) => {
+        if (accounts && accounts.length > 0) setWalletAddress(accounts[0]);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const handler = debounce((val) => setSearchTerm(val), 300);
@@ -34,7 +49,22 @@ function Items({ logout }) {
   }, [searchTerm]);
 
   const filteredAndSortedItems = useMemo(() => {
-    let filtered = items;
+    let filtered = items.map((item) => ({
+      ...item,
+      size:
+        typeof item.size === "string"
+          ? (() => {
+              try {
+                return JSON.parse(item.size);
+              } catch {
+                return [];
+              }
+            })()
+          : item.size || [],
+      favorite: !!item.favorite,
+      image: item.image,
+      price: typeof item.price === "string" ? parseFloat(item.price) : item.price,
+    }));
     filtered = filtered.filter((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.description || "").toLowerCase().includes(searchTerm.toLowerCase()));
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -62,6 +92,57 @@ function Items({ logout }) {
       fetchItems(searchTerm).then((data) => setItems(data));
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  // On-chain purchase handler
+  const handlePurchase = async () => {
+    if (!window.ethereum) {
+      setTxStatus("MetaMask not detected. Please install MetaMask!");
+      return;
+    }
+    if (!walletAddress) {
+      setTxStatus("Please connect your wallet first.");
+      return;
+    }
+    if (!selectedItem) {
+      setTxStatus("No item selected.");
+      return;
+    }
+    setIsTxLoading(true);
+    setTxStatus("");
+    try {
+      // Example: Assume you have the contract ABI and address
+      const contractAddress = process.env.REACT_APP_TRADE_MANAGER_ADDRESS;
+      const contractABI = JSON.parse(process.env.REACT_APP_TRADE_MANAGER_ABI || "[]");
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+      // Send the transaction (replace with your contract's method)
+      const tx = await contract.createTrade(
+        walletAddress, // seller (or use a real seller address)
+        selectedItem.name,
+        ethers.parseUnits(selectedItem.price.toString(), 18) // adjust decimals as needed
+      );
+      setTxStatus("Transaction sent. Waiting for confirmation...");
+      const receipt = await tx.wait();
+      setTxHash(receipt.hash);
+      setTxStatus("Transaction confirmed!");
+      // Send tx hash and purchase info to backend
+      await recordOnchainPurchase({
+        item_id: selectedItem.id,
+        price: selectedItem.price,
+        tx_hash: receipt.hash,
+        wallet_address: walletAddress,
+        size: selectedSize,
+      });
+      setPurchased(true);
+      // Save wallet address to localStorage for persistence
+      localStorage.setItem("walletAddress", walletAddress);
+    } catch (err) {
+      setTxStatus("Transaction failed: " + (err?.message || err?.toString() || "Unknown error"));
+    } finally {
+      setIsTxLoading(false);
     }
   };
 
@@ -221,7 +302,7 @@ function Items({ logout }) {
                     >
                       <img
                         src={item.image}
-                        alt={item.alt || item.name}
+                        alt={item.name}
                         style={{
                           maxWidth: "100%",
                           maxHeight: "100%",
@@ -432,41 +513,33 @@ function Items({ logout }) {
               <DialogContent>
                 <DialogContentText>
                   <div style={{ whiteSpace: "pre-line" }}>
-                    Username: Tran Van A{"\n"}
-                    Address: 0x123456789
-                    {"\n"}
-                    Email: a@gmail.com
-                    {"\n\n"}
                     Product: {selectedItem?.name}
                     {"\n"}
                     Amount: 1{"\n"}
                     Total: {selectedItem?.price}${"\n\n"}
-                    Date: 06/06/2025
-                    {"\n"}
-                    Time: 10:00:00
+                    {walletAddress ? `Wallet: ${walletAddress}` : "Wallet not connected"}
                   </div>
                 </DialogContentText>
+                {txStatus && (
+                  <Alert severity={txStatus.startsWith("Transaction failed") ? "error" : "info"} sx={{ mt: 2 }}>
+                    {txStatus}
+                  </Alert>
+                )}
               </DialogContent>
               <DialogActions>
                 <Button onClick={() => setConfirming(false)}>Cancel</Button>
                 <Button
-                  onClick={() => {
-                    setPurchased(true);
-                    setTimeout(() => {
-                      setConfirming(false);
-                      setSelectedItem(null);
-                      setSelectedSize("");
-                    }, 1200);
-                  }}
+                  onClick={handlePurchase}
                   autoFocus
                   variant="contained"
+                  disabled={isTxLoading}
                   sx={{
                     backgroundColor: "#ff001e",
                     textTransform: "none",
                     "&:hover": { backgroundColor: "#d4001a" },
                   }}
                 >
-                  Confirm
+                  {isTxLoading ? "Processing..." : "Confirm & Pay"}
                 </Button>
               </DialogActions>
             </>
@@ -477,6 +550,13 @@ function Items({ logout }) {
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Thank you for your purchase.
+                <br />
+                {txHash && (
+                  <>
+                    <br />
+                    Transaction Hash: <span style={{ fontFamily: "monospace" }}>{txHash}</span>
+                  </>
+                )}
               </Typography>
             </DialogContent>
           )}

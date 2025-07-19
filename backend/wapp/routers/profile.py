@@ -116,7 +116,6 @@ def get_user_profile(
         "username": current_user.username,
         "email": current_user.email,
         "wallet_address": current_user.wallet_address,
-        "gold_balance": current_user.gold_balance,
         "is_active": current_user.is_active,
         "created_at": current_user.created_at
     }

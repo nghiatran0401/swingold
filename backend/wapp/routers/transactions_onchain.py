@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.orm import Session
 from datetime import datetime
 from services.database import get_db
@@ -70,3 +70,37 @@ def get_onchain_balance(address: str):
         return {"address": address, "balance": balance}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch balance: {str(e)}")
+
+@router.post("/purchase", status_code=status.HTTP_201_CREATED)
+def record_onchain_purchase(
+    purchase: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Record an on-chain purchase after verifying the tx_hash.
+    Expects: {item_id, price, tx_hash, wallet_address, size}
+    """
+    try:
+        # Find user by wallet_address
+        user = db.query(models.User).filter(models.User.wallet_address == purchase["wallet_address"]).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User with this wallet address not found")
+        # TODO: Verify tx_hash on-chain (placeholder)
+        # For now, just record the transaction
+        db_transaction = models.Transaction(
+            amount=purchase["price"],
+            direction=models.DirectionEnum.debit,
+            description=f"On-chain purchase of item_id {purchase['item_id']}, size: {purchase.get('size', '')}, tx: {purchase['tx_hash']}",
+            date=datetime.now().strftime("%Y-%m-%d"),
+            time=datetime.now().strftime("%H:%M:%S"),
+            user_id=user.id,
+            tx_hash=purchase["tx_hash"],
+            status="pending"
+        )
+        db.add(db_transaction)
+        db.commit()
+        db.refresh(db_transaction)
+        return {"status": "success", "db_id": db_transaction.id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to record on-chain purchase: {str(e)}")
