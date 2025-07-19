@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Items from "./pages/Items";
 import Events from "./pages/Events";
@@ -13,23 +13,22 @@ import { loginUser } from "./api";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
+  // Get user from localStorage
   useEffect(() => {
-    // Get the user from localStorage
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
+    const user = localStorage.getItem("user");
+    if (user) {
+      setUser(JSON.parse(user));
       setIsAuthenticated(true);
+      navigate("/events");
     }
-    setLoading(false);
   }, []);
 
   // Login function using backend
   const login = async (username, password) => {
     try {
       const user = await loginUser(username, password);
-      localStorage.setItem("user", JSON.stringify(user));
       setUser(user);
       setIsAuthenticated(true);
       return { success: true };
@@ -45,7 +44,6 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  if (loading) return <div>Loading...</div>;
   return (
     <Router>
       <Navbar user={user} logout={logout} />
@@ -54,7 +52,7 @@ function App() {
         <Route path="/" element={<Navigate to="/events" replace />} />
 
         {/* Login route (not protected) */}
-        <Route path="/login" element={<Login login={login} isAuthenticated={isAuthenticated} />} />
+        <Route path="/login" element={<Login login={login} />} />
 
         {/* Protected routes */}
         <Route

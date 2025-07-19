@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS items (
     description TEXT,
     image_url VARCHAR(500),
     price DECIMAL(10,1) DEFAULT 0.0,
-    favored BOOLEAN DEFAULT FALSE,
     tags VARCHAR(255),
     status ENUM('upcoming','active','completed','cancelled') DEFAULT 'upcoming',
     note TEXT,
@@ -85,19 +84,19 @@ CREATE TABLE IF NOT EXISTS item_purchases (
 );
 
 -- Insert sample items data
-INSERT INTO items (id, name, description, image_url, price, favored, tags) VALUES
-(1, 'Polo Shirt', 'The uniform of Swinburne Vietnam, coloured in red and black. Made with cotton. Comfortable to wear.', './images/poloshirt.png', 180, false, '["S", "M", "L", "XL"]'),
-(2, 'Black Tote with Zipper', 'Big and powerful tote bag with zipper. Suitable for carrying both Tablet and Laptop.', './images/blacktote.png', 140, false, NULL),
-(3, 'White Tote', 'Small and convenient tote bag, with fashionable design.', './images/whitetote.png', 120, false, NULL),
-(4, 'Umbrella', 'Small, portable umbrella, with the Logo of Swinburne University will be your perfect companion during rainy days or even sunny days. Especially suitable for Hanoi weather.', './images/umbrella.png', 180, false, NULL),
-(5, 'Notebook and Pen', 'Black Notebook and blue pen', './images/notebook.png', 30, false, NULL),
-(6, 'Teddy Bear', 'Teddy bear of variable sizes', './images/teddybear.png', 150, false, NULL),
-(7, 'Water Bottle', 'White Water Bottle 500ml', './images/waterbottle.png', 250, false, NULL),
-(8, 'Lanyard', 'Lanyard that can hold your phone or Student ID', './images/lanyard.png', 70, false, NULL),
-(9, 'Red Hoodie', 'Red hoodie to keep you warm on winter days', './images/redhoodie.png', 420, false, '["S", "M", "L", "XL"]'),
-(10, 'Tinh An Tam Thuc Book', 'A book by Swinburne Vietnam Vovinam Club', './images/book.png', 165, false, NULL),
-(11, '[Coursera] Build Dynamic UI for Websites', 'An online course, offered by Coursera that would provide you with useful skills on how to effectively design a Website Interface.', './images/coursera.png', 100, false, NULL),
-(12, '[Coursera] Foundations of Digital Marketing and E-commerce', 'An online course, offered by Coursera & Google that would provide you with insights on Marketing and E-commerce.', './images/coursera.png', 100, false, NULL);
+INSERT INTO items (id, name, description, image_url, price, tags) VALUES
+(1, 'Polo Shirt', 'The uniform of Swinburne Vietnam, coloured in red and black. Made with cotton. Comfortable to wear.', './images/poloshirt.png', 180, '["S", "M", "L", "XL"]'),
+(2, 'Black Tote with Zipper', 'Big and powerful tote bag with zipper. Suitable for carrying both Tablet and Laptop.', './images/blacktote.png', 140, NULL),
+(3, 'White Tote', 'Small and convenient tote bag, with fashionable design.', './images/whitetote.png', 120, NULL),
+(4, 'Umbrella', 'Small, portable umbrella, with the Logo of Swinburne University will be your perfect companion during rainy days or even sunny days. Especially suitable for Hanoi weather.', './images/umbrella.png', 180, NULL),
+(5, 'Notebook and Pen', 'Black Notebook and blue pen', './images/notebook.png', 30, NULL),
+(6, 'Teddy Bear', 'Teddy bear of variable sizes', './images/teddybear.png', 150, NULL),
+(7, 'Water Bottle', 'White Water Bottle 500ml', './images/waterbottle.png', 250, NULL),
+(8, 'Lanyard', 'Lanyard that can hold your phone or Student ID', './images/lanyard.png', 70, NULL),
+(9, 'Red Hoodie', 'Red hoodie to keep you warm on winter days', './images/redhoodie.png', 420, '["S", "M", "L", "XL"]'),
+(10, 'Tinh An Tam Thuc Book', 'A book by Swinburne Vietnam Vovinam Club', './images/book.png', 165, NULL),
+(11, '[Coursera] Build Dynamic UI for Websites', 'An online course, offered by Coursera that would provide you with useful skills on how to effectively design a Website Interface.', './images/coursera.png', 100, NULL),
+(12, '[Coursera] Foundations of Digital Marketing and E-commerce', 'An online course, offered by Coursera & Google that would provide you with insights on Marketing and E-commerce.', './images/coursera.png', 100, NULL);
 
 -- Insert sample events data
 INSERT INTO events (id, name, category, start_datetime, end_datetime, price, location, seats_available, tags, status, image_url) VALUES

@@ -9,7 +9,6 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from services.database import get_db
 import services.models as models
-import services.schemas as schemas
 from routers.auth import get_current_user
 import secrets
 import time
@@ -22,7 +21,7 @@ router = APIRouter()
 wallet_challenges = {}
 
 @router.post("/wallet-challenge")
-def request_wallet_challenge(request: schemas.WalletChallengeRequest, db: Session = Depends(get_db)):
+def request_wallet_challenge(request, db: Session = Depends(get_db)):
     """
     Generate a challenge message for wallet signature verification
     """
@@ -41,7 +40,7 @@ def request_wallet_challenge(request: schemas.WalletChallengeRequest, db: Sessio
         raise HTTPException(status_code=500, detail=f"Failed to generate challenge: {str(e)}")
 
 @router.post("/wallet-verify")
-def verify_wallet_signature(request: schemas.WalletVerifyRequest, db: Session = Depends(get_db)):
+def verify_wallet_signature(request, db: Session = Depends(get_db)):
     """
     Verify the wallet signature against the challenge
     """
@@ -72,11 +71,7 @@ def verify_wallet_signature(request: schemas.WalletVerifyRequest, db: Session = 
         raise HTTPException(status_code=400, detail=f"Signature verification failed: {str(e)}")
 
 @router.patch("/wallet-address")
-def update_wallet_address(
-    request: schemas.WalletAddressUpdate, 
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
+def update_wallet_address(request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """
     Update user's wallet address after successful verification
     """
@@ -95,27 +90,8 @@ def update_wallet_address(
         db.commit()
         db.refresh(current_user)
         
-        return {
-            "message": "Wallet address updated successfully",
-            "wallet_address": current_user.wallet_address
-        }
+        return current_user
     
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update wallet address: {str(e)}")
-
-@router.get("/profile")
-def get_user_profile(
-    current_user: models.User = Depends(get_current_user)
-):
-    """
-    Get current user's profile information
-    """
-    return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "email": current_user.email,
-        "wallet_address": current_user.wallet_address,
-        "is_active": current_user.is_active,
-        "created_at": current_user.created_at
-    }

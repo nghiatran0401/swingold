@@ -6,61 +6,89 @@ import { Grid, Paper, Box, Button, Typography, Chip, Dialog, DialogActions, Dial
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import Search from "@mui/icons-material/Search";
 
+// Helper function to convert YYYY-MM to month name
+const convertToMonthName = (yearMonth) => {
+  if (yearMonth === "All") return "All";
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const [year, month] = yearMonth.split("-");
+  const monthIndex = parseInt(month) - 1;
+  return monthNames[monthIndex] || yearMonth;
+};
+
+// Helper function to convert month name to YYYY-MM format for comparison
+const getMonthValue = (monthName) => {
+  if (monthName === "All") return "All";
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const monthIndex = monthNames.indexOf(monthName);
+  return monthIndex !== -1 ? String(monthIndex + 1).padStart(2, "0") : null;
+};
+
 function Events({ logout }) {
+  const [events, setEvents] = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState([]);
   const [searchInput, setSearchInput] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [months, setMonths] = useState(["All"]);
   const [selectedMonth, setSelectedMonth] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [enrolledEvents, setEnrolledEvents] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingEventId, setPendingEventId] = useState(null);
   const [registeredSeats, setRegisteredSeats] = useState(0);
-  const [events, setEvents] = useState([]);
-  const [months, setMonths] = useState(["All"]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  // Debounce search input for events
-  useEffect(() => {
-    const handler = debounce((val) => setSearchTerm(val), 300);
-    handler(searchInput);
-    return () => handler.cancel();
-  }, [searchInput]);
-
+  // Fetch available months and events on mount
   useEffect(() => {
     setLoading(true);
-    fetchEvents(selectedMonth)
-      .then((data) => setEvents(data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [selectedMonth]);
-
-  useEffect(() => {
-    fetchAvailableMonths().then((m) => setMonths(["All", ...m]));
+    fetchEvents().then((e) => setEvents(e));
+    fetchAvailableMonths().then((m) => {
+      const monthNames = m.map(convertToMonthName);
+      setMonths(["All", ...monthNames]);
+    });
+    setLoading(false);
   }, []);
 
-  const filteredEvents = useMemo(() => {
-    return events
-      .map((event) => ({
-        ...event,
-        date: event.date || event.start_datetime || "",
-        end_date: event.end_date || event.end_datetime || "",
-        image: event.image || "",
-        name: event.name || "",
-        description: event.description || "",
-        location: event.location || "",
-        category: event.category || "",
-        status: event.status || "",
-        price: event.price ?? "",
-        seats: event.seats ?? "",
-      }))
-      .filter((event) => (event.name && event.name.toLowerCase().includes(searchTerm.toLowerCase())) || (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())));
-  }, [events, searchTerm]);
+  // Filter events by selected month
+  useEffect(() => {
+    if (selectedMonth === "All") {
+      setFilteredEvents(events);
+    } else {
+      const selectedMonthValue = getMonthValue(selectedMonth);
+      const monthFiltered = events.filter((event) => {
+        if (event.start_datetime && selectedMonthValue) {
+          const eventDate = new Date(event.start_datetime);
+          const eventMonth = String(eventDate.getMonth() + 1).padStart(2, "0");
+          return eventMonth === selectedMonthValue;
+        }
+        return false;
+      });
+      setFilteredEvents(monthFiltered);
+    }
+  }, [selectedMonth, events]);
+
+  // Search events with Lodash debounce
+  useEffect(() => {
+    const handler = debounce((searchValue) => {
+      const searchFiltered = events.filter(
+        (event) => (event.name && event.name.toLowerCase().includes(searchValue.toLowerCase())) || (event.description && event.description.toLowerCase().includes(searchValue.toLowerCase()))
+      );
+      setFilteredEvents(searchFiltered);
+    }, 300);
+    handler(searchInput);
+    return () => handler.cancel();
+  }, [searchInput, events]);
 
   const handleEnrollClick = (eventId) => {
     setPendingEventId(eventId);
     setConfirmOpen(true);
   };
 
+  const handleCancel = () => {
+    setConfirmOpen(false);
+    setPendingEventId(null);
+  };
+
+  // TODO: come back to this later
   const handleConfirm = async () => {
     if (pendingEventId !== null) {
       try {
@@ -68,16 +96,11 @@ function Events({ logout }) {
         setEnrolledEvents((prev) => ({ ...prev, [pendingEventId]: true }));
         setRegisteredSeats((prev) => prev + 1);
         // Optionally reload events
-        fetchEvents(selectedMonth).then((data) => setEvents(data));
+        fetchEvents().then((data) => setEvents(data));
       } catch (err) {
         setError(err.message);
       }
     }
-    setConfirmOpen(false);
-    setPendingEventId(null);
-  };
-
-  const handleCancel = () => {
     setConfirmOpen(false);
     setPendingEventId(null);
   };

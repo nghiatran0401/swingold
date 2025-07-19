@@ -14,16 +14,14 @@ app.add_middleware(
 )
 
 # Each router is connected to different end points to fetch data
-
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(items.router, prefix="/api/v1")
 app.include_router(events.router, prefix="/api/v1")
+app.include_router(profile.router, prefix="/api/v1")
 app.include_router(transactions.router, prefix="/api/v1")
 app.include_router(transactions_onchain.router, prefix="/api/v1")
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(profile.router, prefix="/api/v1")
 
 # Handle exeption, displaying error message
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     return JSONResponse(
@@ -34,10 +32,6 @@ async def global_exception_handler(request, exc):
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Swinburne Gold API"}
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn

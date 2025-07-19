@@ -80,8 +80,6 @@ function Wallet({ logout }) {
         // Update wallet address in backend
         await updateWalletAddress(selectedAddress);
         updateWalletStatus("Wallet linked to your profile!");
-        // Refresh user profile to get updated wallet address from database
-        await fetchUserProfileData();
       } else {
         updateWalletStatus("Signature verification failed.");
       }
@@ -95,19 +93,16 @@ function Wallet({ logout }) {
 
   useEffect(() => {
     setLoading(true);
-    // Always fetch latest profile from backend
-    fetchUserProfileData().then(() => {
-      const walletAddr = userProfile?.wallet_address;
-      const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
-      Promise.all([balancePromise, fetchTransactions(1)])
-        .then(([balance, txs]) => {
-          setOnchainBalance(balance);
-          setTransactionHistory(txs);
-        })
-        .catch((err) => setError(err.message))
-        .finally(() => setLoading(false));
-    });
-    // eslint-disable-next-line
+
+    const walletAddr = userProfile?.wallet_address;
+    const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
+    Promise.all([balancePromise, fetchTransactions(1)])
+      .then(([balance, txs]) => {
+        setOnchainBalance(balance);
+        setTransactionHistory(txs);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   const cardBase = {

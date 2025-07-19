@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Card, CardContent, Typography, Button, TextField, Alert } from "@mui/material";
 
-export default function Login({ login, isAuthenticated }) {
+export default function Login({ login }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -13,12 +13,12 @@ export default function Login({ login, isAuthenticated }) {
     if (isAuthenticated) navigate("/events");
   }, [isAuthenticated, navigate]);
 
-// Handle Login  
   const handleLogin = async () => {
     if (!username || !password) {
       setError("Please enter both username and password.");
       return;
     }
+
     setError("");
     setLoading(true);
 
@@ -31,14 +31,6 @@ export default function Login({ login, isAuthenticated }) {
       setError(result.error);
     }
   };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleLogin();
-    }
-  };
-
-// Displaying page components
 
   return (
     <>
@@ -117,7 +109,6 @@ export default function Login({ login, isAuthenticated }) {
                 margin="normal"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                onKeyPress={handleKeyPress}
                 sx={{
                   mb: 2,
                   "& .MuiOutlinedInput-root": {
@@ -137,8 +128,6 @@ export default function Login({ login, isAuthenticated }) {
                 {error}
               </Alert>
             )}
-
-            {/* Login Button */}
 
             <Button
               fullWidth
@@ -161,7 +150,7 @@ export default function Login({ login, isAuthenticated }) {
               {loading ? "Logging in..." : "Log In"}
             </Button>
 
-{/* Demo login credentials */}
+            {/* Demo login credentials */}
             <Typography variant="body2" align="center" sx={{ mt: 2, color: "#666", fontSize: 13 }}>
               User account: user / cos30049 <br />
               Admin account: admin / cos30049

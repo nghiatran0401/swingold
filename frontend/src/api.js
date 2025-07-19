@@ -1,74 +1,8 @@
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/v1";
 
-// Fetch all events, get events by month
-export const fetchEvents = async (month = null, search = null) => {
-  let url = `${API_BASE_URL}/events`;
-  const params = new URLSearchParams();
-  if (month && month !== "All") params.append("month", month);
-  if (search) params.append("search", search);
-  if (params.toString()) url += `?${params.toString()}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch events");
-  return res.json();
-};
-
-// Fetch all Items
-export const fetchItems = async (search = null) => {
-  let url = `${API_BASE_URL}/items`;
-  const params = new URLSearchParams();
-  if (search) params.append("search", search);
-  if (params.toString()) url += `?${params.toString()}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch items");
-  return res.json();
-};
-
-// Fetch all transactions of one user
-export const fetchTransactions = async (userId = 1) => {
-  let url = `${API_BASE_URL}/transactions?user_id=${userId}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch transactions");
-  return res.json();
-};
-
-// Get user on-chain balance
-export const fetchUserBalance = async (walletAddress) => {
-  if (!walletAddress) throw new Error("No wallet address provided");
-  let url = `${API_BASE_URL}/transactions/onchain/balance/${walletAddress}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch user balance");
-  const data = await res.json();
-  return data.balance;
-};
-
-// Toggle favorite item
-export const toggleItemFavorite = async (itemId) => {
-  let url = `${API_BASE_URL}/items/${itemId}/favorite`;
-  const res = await fetch(url, { method: "PATCH" });
-  if (!res.ok) throw new Error("Failed to toggle favorite");
-  return res.json();
-};
-
-// Toggle Event enrollment
-export const toggleEventEnrollment = async (eventId) => {
-  let url = `${API_BASE_URL}/events/${eventId}/enroll`;
-  const res = await fetch(url, { method: "PATCH" });
-  if (!res.ok) throw new Error("Failed to toggle enrollment");
-  return res.json();
-};
-
-// Get all available months in Events table
-export const fetchAvailableMonths = async () => {
-  let url = `${API_BASE_URL}/events/months/list`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch months");
-  return res.json();
-};
-
-// Send post request to Login API
+// Get user from database and save to localStorage
 export const loginUser = async (username, password) => {
-  const url = `${API_BASE_URL}/login`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -78,18 +12,20 @@ export const loginUser = async (username, password) => {
     throw new Error(error.detail || "Login failed");
   }
   const user = await res.json();
-  // Save user to localStorage
   localStorage.setItem("user", JSON.stringify(user));
-  // Fetch and save latest profile
-  const profile = await getUserProfile();
-  localStorage.setItem("userProfile", JSON.stringify(profile));
   return user;
 };
 
-// Post request to Event API to create new event
+// Fetch all events
+export const fetchEvents = async () => {
+  const res = await fetch(`${API_BASE_URL}/events`);
+  if (!res.ok) throw new Error("Failed to fetch events");
+  return res.json();
+};
+
+// Create a new event
 export const createEvent = async (event, userId) => {
-  const url = `${API_BASE_URL}/events`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/events`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -101,10 +37,9 @@ export const createEvent = async (event, userId) => {
   return res.json();
 };
 
-//Put request to Update Event
+// Update an existing event
 export const updateEvent = async (eventId, event, userId) => {
-  const url = `${API_BASE_URL}/events/${eventId}`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/events/${eventId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -116,10 +51,9 @@ export const updateEvent = async (eventId, event, userId) => {
   return res.json();
 };
 
-// Request Delete an Event
+// Delete an event
 export const deleteEvent = async (eventId, userId) => {
-  const url = `${API_BASE_URL}/events/${eventId}`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/events/${eventId}`, {
     method: "DELETE",
     headers: { "X-User-Id": userId },
   });
@@ -127,10 +61,23 @@ export const deleteEvent = async (eventId, userId) => {
   return res.json();
 };
 
-// Post request to create new item
+// Get all available months in Events table
+export const fetchAvailableMonths = async () => {
+  const res = await fetch(`${API_BASE_URL}/events/months/list`);
+  if (!res.ok) throw new Error("Failed to fetch months");
+  return res.json();
+};
+
+// Fetch all items
+export const fetchItems = async () => {
+  const res = await fetch(`${API_BASE_URL}/items`);
+  if (!res.ok) throw new Error("Failed to fetch items");
+  return res.json();
+};
+
+// Create a new item
 export const createItem = async (item, userId) => {
-  const url = `${API_BASE_URL}/items`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/items`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -142,10 +89,9 @@ export const createItem = async (item, userId) => {
   return res.json();
 };
 
-// Put request to update item
+// Update an item
 export const updateItem = async (itemId, item, userId) => {
-  const url = `${API_BASE_URL}/items/${itemId}`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/items/${itemId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -157,10 +103,9 @@ export const updateItem = async (itemId, item, userId) => {
   return res.json();
 };
 
-// Request to delete item
+// Delete an item
 export const deleteItem = async (itemId, userId) => {
-  const url = `${API_BASE_URL}/items/${itemId}`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/items/${itemId}`, {
     method: "DELETE",
     headers: { "X-User-Id": userId },
   });
@@ -168,12 +113,33 @@ export const deleteItem = async (itemId, userId) => {
   return res.json();
 };
 
-// ===== WALLET API FUNCTIONS =====
+// TODO: fix with backend and table events_registration
+// Toggle Event enrollment
+export const toggleEventEnrollment = async (eventId) => {
+  const res = await fetch(`${API_BASE_URL}/events/${eventId}/enroll`, { method: "PATCH" });
+  if (!res.ok) throw new Error("Failed to toggle enrollment");
+  return res.json();
+};
+
+// Fetch all transactions of one user
+export const fetchTransactions = async (userId = 1) => {
+  const res = await fetch(`${API_BASE_URL}/transactions?user_id=${userId}`);
+  if (!res.ok) throw new Error("Failed to fetch transactions");
+  return res.json();
+};
+
+// Get user on-chain balance
+export const fetchUserBalance = async (walletAddress) => {
+  if (!walletAddress) throw new Error("No wallet address provided");
+  const res = await fetch(`${API_BASE_URL}/transactions/onchain/balance/${walletAddress}`);
+  if (!res.ok) throw new Error("Failed to fetch user balance");
+  const data = await res.json();
+  return data.balance;
+};
 
 // Request wallet challenge for signature verification
 export const requestWalletChallenge = async (address) => {
-  const url = `${API_BASE_URL}/wallet-challenge`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/wallet-challenge`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ address }),
@@ -187,8 +153,7 @@ export const requestWalletChallenge = async (address) => {
 
 // Verify wallet signature
 export const verifyWalletSignature = async (address, signature) => {
-  const url = `${API_BASE_URL}/wallet-verify`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/wallet-verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ address, signature }),
@@ -203,8 +168,7 @@ export const verifyWalletSignature = async (address, signature) => {
 // Update user's wallet address
 export const updateWalletAddress = async (walletAddress) => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const url = `${API_BASE_URL}/wallet-address`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/wallet-address`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -216,33 +180,13 @@ export const updateWalletAddress = async (walletAddress) => {
     const error = await res.json();
     throw new Error(error.detail || "Failed to update wallet address");
   }
-  return res.json();
-};
-
-// Get user profile information
-export const getUserProfile = async () => {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const url = `${API_BASE_URL}/profile`;
-  const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "X-User-Id": user.id?.toString() || "1",
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.detail || "Failed to get user profile");
-  }
-  const profile = await res.json();
-  localStorage.setItem("userProfile", JSON.stringify(profile));
-  return profile;
+  const updatedUser = await res.json();
+  localStorage.setItem("user", JSON.stringify(updatedUser));
 };
 
 // Record on-chain purchase
 export const recordOnchainPurchase = async (purchaseData) => {
-  const url = `${API_BASE_URL}/transactions/onchain/purchase`;
-  const res = await fetch(url, {
+  const res = await fetch(`${API_BASE_URL}/transactions/onchain/purchase`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(purchaseData),

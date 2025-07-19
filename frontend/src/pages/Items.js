@@ -1,16 +1,18 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { fetchItems, toggleItemFavorite, recordOnchainPurchase } from "../api";
+import { fetchItems, recordOnchainPurchase } from "../api";
 import Navbar from "../components/Navbar";
-import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Alert } from "@mui/material";
-import { Search, FilterList, Favorite, FavoriteBorder } from "@mui/icons-material";
+import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Alert } from "@mui/material";
+import { Search, FilterList } from "@mui/icons-material";
 import debounce from "lodash.debounce";
 import { ethers } from "ethers";
 
+// TODO: come back to this later
+
 function Items({ logout }) {
   const [searchInput, setSearchInput] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
-  const [favorites, setFavorites] = useState([]);
+  const [filteredAndSortedItems, setFilteredAndSortedItems] = useState([]);
+
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedSize, setSelectedSize] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -18,82 +20,55 @@ function Items({ logout }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // Wallet state
-  const [walletAddress, setWalletAddress] = useState("");
-  const [txStatus, setTxStatus] = useState("");
-  const [txHash, setTxHash] = useState("");
-  const [isTxLoading, setIsTxLoading] = useState(false);
 
-  // On mount, try to get wallet from MetaMask
-  useEffect(() => {
-    if (window.ethereum) {
-      window.ethereum.request({ method: "eth_accounts" }).then((accounts) => {
-        if (accounts && accounts.length > 0) setWalletAddress(accounts[0]);
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    const handler = debounce((val) => setSearchTerm(val), 300);
-    handler(searchInput);
-    return () => handler.cancel();
-  }, [searchInput]);
-
-  // Get Data from Item API
+  // Fetch items on mount
   useEffect(() => {
     setLoading(true);
-    fetchItems(searchTerm)
+    fetchItems()
       .then((data) => setItems(data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [searchTerm]);
+  }, []);
 
-  const filteredAndSortedItems = useMemo(() => {
-    let filtered = items.map((item) => ({
-      ...item,
-      size:
-        typeof item.size === "string"
-          ? (() => {
-              try {
-                return JSON.parse(item.size);
-              } catch {
-                return [];
-              }
-            })()
-          : item.size || [],
-      favorite: !!item.favorite,
-      image: item.image,
-      price: typeof item.price === "string" ? parseFloat(item.price) : item.price,
-    }));
-    filtered = filtered.filter((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.description || "").toLowerCase().includes(searchTerm.toLowerCase()));
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "price-low":
-          return a.price - b.price;
-        case "price-high":
-          return b.price - a.price;
-        default:
-          return a.name.localeCompare(b.name);
+  // Combined debounced search and sort
+  useEffect(() => {
+    const handler = debounce((searchValue) => {
+      let processed = items;
+
+      // Search items
+      if (searchValue) {
+        processed = processed.filter((item) => item.name.toLowerCase().includes(searchValue.toLowerCase()) || (item.description || "").toLowerCase().includes(searchValue.toLowerCase()));
       }
-    });
-    return filtered;
-  }, [items, searchTerm, sortBy]);
+
+      // Sort items
+      processed.sort((a, b) => {
+        switch (sortBy) {
+          case "price-low":
+            return a.price - b.price;
+          case "price-high":
+            return b.price - a.price;
+          default:
+            return a.name.localeCompare(b.name);
+        }
+      });
+
+      setFilteredAndSortedItems(processed);
+    }, 300);
+
+    handler(searchInput);
+    return () => handler.cancel();
+  }, [searchInput, items, sortBy]);
 
   const handleViewDetails = (itemId) => {
     const item = filteredAndSortedItems.find((i) => i.id === itemId);
     setSelectedItem(item);
   };
 
-  const toggleFavorite = async (itemId) => {
-    try {
-      await toggleItemFavorite(itemId);
-      setFavorites((prev) => (prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]));
-      // Optionally reload items
-      fetchItems(searchTerm).then((data) => setItems(data));
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  // Wallet state
+  const [walletAddress, setWalletAddress] = useState("");
+  const [txStatus, setTxStatus] = useState("");
+  const [txHash, setTxHash] = useState("");
+  const [isTxLoading, setIsTxLoading] = useState(false);
 
   // On-chain purchase handler
   const handlePurchase = async () => {
@@ -267,27 +242,6 @@ function Items({ logout }) {
                       },
                     }}
                   >
-                    {/* Favorite */}
-                    <IconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(item.id);
-                      }}
-                      sx={{
-                        position: "absolute",
-                        top: 10,
-                        right: 10,
-                        zIndex: 2,
-                        backgroundColor: "#fff",
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                        "&:hover": {
-                          backgroundColor: "#f5f5f5",
-                        },
-                      }}
-                    >
-                      {favorites.includes(item.id) ? <Favorite sx={{ color: "#ff001e" }} /> : <FavoriteBorder sx={{ color: "#999" }} />}
-                    </IconButton>
-
                     {/* Image */}
                     <Box
                       sx={{
@@ -409,7 +363,6 @@ function Items({ logout }) {
               <DialogTitle>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Typography fontWeight={600}>{selectedItem.name}</Typography>
-                  <IconButton onClick={() => toggleFavorite(selectedItem.id)}>{favorites.includes(selectedItem.id) ? <Favorite sx={{ color: "#ff001e" }} /> : <FavoriteBorder />}</IconButton>
                 </Box>
               </DialogTitle>
 
