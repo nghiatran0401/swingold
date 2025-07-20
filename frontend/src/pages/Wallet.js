@@ -5,9 +5,15 @@ import { ethers } from "ethers";
 import Navbar from "../components/Navbar";
 import { fetchTransactions, fetchUserBalance, requestWalletChallenge, verifyWalletSignature, updateWalletAddress } from "../api";
 
+const cardBase = {
+  p: { xs: 3, sm: 4 },
+  borderRadius: 4,
+  backgroundColor: "#ffffff",
+  border: "1px solid #e0e0e0",
+};
+
 function Wallet({ logout }) {
   const [currentView, setCurrentView] = useState("main");
-  const [goldBalance, setGoldBalance] = useState(0);
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,12 +22,28 @@ function Wallet({ logout }) {
   const [isWalletLoading, setIsWalletLoading] = useState(false);
   const [onchainBalance, setOnchainBalance] = useState(null);
 
-  // Wallet verification functions
-  const updateWalletStatus = (status) => {
-    setWalletStatus(status);
-  };
+  // // Load user from localStorage when on mount
+  useEffect(() => {
+    setLoading(true);
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    setUserProfile(user);
+
+    //   const walletAddr = user?.wallet_address;
+    //   const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
+    //   Promise.all([balancePromise, fetchTransactions(1)])
+    //     .then(([balance, txs]) => {
+    //       setOnchainBalance(balance);
+    //       setTransactionHistory(txs);
+    //     })
+    //     .catch((err) => setError(err.message))
+
+    setLoading(false);
+  }, []);
 
   const connectWallet = async () => {
+    const updateWalletStatus = (status) => setWalletStatus(status);
+
     if (!window.ethereum) {
       alert("MetaMask not detected. Please install MetaMask!");
       return;
@@ -35,23 +57,8 @@ function Wallet({ logout }) {
       const [selectedAddress] = await window.ethereum.request({ method: "eth_requestAccounts" });
       updateWalletStatus("Wallet connected successfully!");
 
-      // Perform full verification flow
-      await performFullVerification(selectedAddress);
-    } catch (err) {
-      console.error("Wallet connection error:", err);
-      const errorMessage = err.message || err.toString() || "Unknown error occurred";
-      updateWalletStatus("Error: " + errorMessage);
-      alert("Wallet connection failed: " + errorMessage);
-    } finally {
-      setIsWalletLoading(false);
-    }
-  };
-
-  const performFullVerification = async (selectedAddress) => {
-    try {
-      updateWalletStatus("Requesting challenge from server...");
-
       // Request challenge from backend
+      updateWalletStatus("Requesting challenge from server...");
       const challengeData = await requestWalletChallenge(selectedAddress);
       updateWalletStatus("Challenge received. Please sign with MetaMask...");
 
@@ -63,54 +70,23 @@ function Wallet({ logout }) {
 
       // Send signature to backend for verification
       const verifyData = await verifyWalletSignature(selectedAddress, signature);
+
+      // If verified, update updatedUser both to backend and localStorage
       if (verifyData.verified) {
         updateWalletStatus("Wallet verified! Updating profile...");
-
-        // Update wallet address in backend
-        await updateWalletAddress(selectedAddress);
-        
-        // Refresh user profile from localStorage (updateWalletAddress updates it)
-        const updatedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const updatedUser = await updateWalletAddress(selectedAddress);
         setUserProfile(updatedUser);
-        
         updateWalletStatus("Wallet linked to your profile!");
       } else {
         updateWalletStatus("Signature verification failed.");
       }
     } catch (err) {
-      console.error("Wallet verification error:", err);
-      const errorMessage = err.message || err.toString() || "Verification failed";
-      updateWalletStatus("Error: " + errorMessage);
-      throw new Error(errorMessage);
+      console.error("Wallet connection error:", err);
+    } finally {
+      setIsWalletLoading(false);
     }
   };
 
-  useEffect(() => {
-    setLoading(true);
-
-    // Load user profile from localStorage
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    setUserProfile(user);
-
-    const walletAddr = user?.wallet_address;
-    const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
-    Promise.all([balancePromise, fetchTransactions(1)])
-      .then(([balance, txs]) => {
-        setOnchainBalance(balance);
-        setTransactionHistory(txs);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const cardBase = {
-    p: { xs: 3, sm: 4 },
-    borderRadius: 4,
-    backgroundColor: "#ffffff",
-    border: "1px solid #e0e0e0",
-  };
-
-  // Displaying current on-chain balance box
   const renderMainView = () => (
     <Grid container spacing={4} alignItems="center" justifyContent="center">
       <Grid item xs={12} md={5}>

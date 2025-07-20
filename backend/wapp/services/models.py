@@ -1,7 +1,6 @@
 # https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/basic_use.html
 # Defines the database models for the application
 
-# TODO: come back to this later
 
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Numeric, Enum, ForeignKey
 from sqlalchemy.sql import func

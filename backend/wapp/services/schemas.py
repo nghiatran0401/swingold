@@ -1,3 +1,4 @@
+# https://docs.pydantic.dev/1.10/usage/schema/
 # This schema is mainly use for data validation and response
 
 from pydantic import BaseModel

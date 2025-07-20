@@ -1,3 +1,5 @@
+# https://stackoverflow.com/questions/66736079/verify-metamask-signature-ethereum-using-python
+# https://eth-account.readthedocs.io/en/stable/
 # This is a classic Web3 wallet verification pattern
 
 # Cryptographic Principles: based on digital signature verification
@@ -19,11 +21,11 @@ router = APIRouter()
 # In-memory storage for challenges (in production, use Redis or database)
 wallet_challenges = {}
 
-@router.post("/wallet-challenge")
+"""
+Generate a challenge message for wallet signature verification
+"""
+@router.post("/request-wallet-challenge")
 def request_wallet_challenge(request: dict):
-    """
-    Generate a challenge message for wallet signature verification
-    """
     try:
         address = request.get('address')
         if not address:
@@ -42,11 +44,12 @@ def request_wallet_challenge(request: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate challenge: {str(e)}")
 
-@router.post("/wallet-verify")
+
+"""
+Verify the wallet signature against the challenge
+"""
+@router.post("/verify-wallet-signature")
 def verify_wallet_signature(request: dict):
-    """
-    Verify the wallet signature against the challenge
-    """
     try:
         address_lower = request.get('address').lower()
         
@@ -77,11 +80,12 @@ def verify_wallet_signature(request: dict):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Signature verification failed: {str(e)}")
 
-@router.patch("/wallet-address")
+
+"""
+Update user's wallet address after successful verification
+"""
+@router.patch("/update-wallet-address")
 def update_wallet_address(request: dict, db: Session = Depends(get_db), x_user_id: str = Header(None, alias="X-User-Id")):
-    """
-    Update user's wallet address after successful verification
-    """
     try:
         # Validate user ID
         if not x_user_id:

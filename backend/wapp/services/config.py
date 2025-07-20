@@ -1,5 +1,5 @@
 # https://dev.to/yanagisawahidetoshi/efficiently-using-environment-variables-in-fastapi-4lal
-# Loads environment variables from .env file and builds the atabase URL
+# Loads environment variables from .env file and builds the database URL
 
 import os
 from dotenv import load_dotenv
@@ -23,6 +23,6 @@ class Settings:
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"mysql+mysqlconnector://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@localhost:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
+        return f"mysql+mysqlconnector://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
 
 settings = Settings() 

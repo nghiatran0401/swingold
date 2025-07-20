@@ -139,7 +139,7 @@ export const fetchUserBalance = async (walletAddress) => {
 
 // Request wallet challenge for signature verification
 export const requestWalletChallenge = async (address) => {
-  const res = await fetch(`${API_BASE_URL}/wallet-challenge`, {
+  const res = await fetch(`${API_BASE_URL}/request-wallet-challenge`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ address }),
@@ -153,7 +153,7 @@ export const requestWalletChallenge = async (address) => {
 
 // Verify wallet signature
 export const verifyWalletSignature = async (address, signature) => {
-  const res = await fetch(`${API_BASE_URL}/wallet-verify`, {
+  const res = await fetch(`${API_BASE_URL}/verify-wallet-signature`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ address, signature }),
@@ -168,7 +168,7 @@ export const verifyWalletSignature = async (address, signature) => {
 // Update user's wallet address
 export const updateWalletAddress = async (walletAddress) => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const res = await fetch(`${API_BASE_URL}/wallet-address`, {
+  const res = await fetch(`${API_BASE_URL}/update-wallet-address`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -182,6 +182,7 @@ export const updateWalletAddress = async (walletAddress) => {
   }
   const updatedUser = await res.json();
   localStorage.setItem("user", JSON.stringify(updatedUser));
+  return updatedUser;
 };
 
 // Record on-chain purchase
