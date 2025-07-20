@@ -62,9 +62,9 @@ def confirm_trade_onchain(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"On-chain confirm failed: {str(e)}")
 
+"""Get token balance of an address from the blockchain."""
 @router.get("/balance/{address}")
 def get_onchain_balance(address: str):
-    """Get token balance of an address from the blockchain."""
     try:
         balance = get_balance(address)
         return {"address": address, "balance": balance}

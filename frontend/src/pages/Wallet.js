@@ -29,14 +29,19 @@ function Wallet({ logout }) {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     setUserProfile(user);
 
-    //   const walletAddr = user?.wallet_address;
-    //   const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
-    //   Promise.all([balancePromise, fetchTransactions(1)])
-    //     .then(([balance, txs]) => {
-    //       setOnchainBalance(balance);
-    //       setTransactionHistory(txs);
-    //     })
-    //     .catch((err) => setError(err.message))
+    const walletAddr = user?.wallet_address;
+    const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
+    Promise.all([balancePromise, fetchTransactions(1)])
+      .then(([rawBalance, txs]) => {
+        const eth = Number(rawBalance) / 1e18;
+        const formatted = eth.toLocaleString(undefined, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 4,
+        });
+        setOnchainBalance(formatted + " ETH");
+        setTransactionHistory(txs);
+      })
+      .catch((err) => setError(err.message));
 
     setLoading(false);
   }, []);

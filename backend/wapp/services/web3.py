@@ -5,10 +5,10 @@ import os
 
 load_dotenv()
 
-PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 w3 = Web3(Web3.HTTPProvider(os.getenv("BLOCKCHAIN_RPC_URL")))
 TRADE_MANAGER_ADDRESS = Web3.to_checksum_address(os.getenv("TRADE_MANAGER_ADDRESS"))
 TOKEN_ADDRESS = Web3.to_checksum_address(os.getenv("TOKEN_ADDRESS"))
+PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 ACCOUNT = w3.eth.account.from_key(PRIVATE_KEY)
 
 ABI_OUTPUT_DIR = os.getenv("ABI_OUTPUT_DIR")

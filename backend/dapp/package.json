@@ -7,7 +7,7 @@
     "node": "npx hardhat node",
     "compile": "npx hardhat compile && node extract-abis.js",
     "test": "npx hardhat test",
-    "deploy": "npx hardhat ignition deploy ./ignition/modules/DeployContracts.js"
+    "deploy": "npx hardhat ignition deploy ./ignition/modules/DeployContracts.js --network localhost"
   },
   "keywords": [],
   "author": "",
