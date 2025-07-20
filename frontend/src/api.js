@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 // Get user from database and save to localStorage
 export const loginUser = async (username, password) => {
@@ -113,6 +113,15 @@ export const deleteItem = async (itemId, userId) => {
   return res.json();
 };
 
+// Get user on-chain balance
+export const fetchUserBalance = async (walletAddress) => {
+  if (!walletAddress) throw new Error("No wallet address provided");
+  const res = await fetch(`${API_BASE_URL}/transactions/onchain/balance/${walletAddress}`);
+  if (!res.ok) throw new Error("Failed to fetch user balance");
+  const data = await res.json();
+  return data.balance;
+};
+
 // TODO: fix with backend and table events_registration
 // Toggle Event enrollment
 export const toggleEventEnrollment = async (eventId) => {
@@ -126,15 +135,6 @@ export const fetchTransactions = async (userId = 1) => {
   const res = await fetch(`${API_BASE_URL}/transactions?user_id=${userId}`);
   if (!res.ok) throw new Error("Failed to fetch transactions");
   return res.json();
-};
-
-// Get user on-chain balance
-export const fetchUserBalance = async (walletAddress) => {
-  if (!walletAddress) throw new Error("No wallet address provided");
-  const res = await fetch(`${API_BASE_URL}/transactions/onchain/balance/${walletAddress}`);
-  if (!res.ok) throw new Error("Failed to fetch user balance");
-  const data = await res.json();
-  return data.balance;
 };
 
 // Request wallet challenge for signature verification

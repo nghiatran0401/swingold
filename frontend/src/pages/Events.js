@@ -5,6 +5,7 @@ import { fetchEvents, fetchAvailableMonths, toggleEventEnrollment } from "../api
 import { Grid, Paper, Box, Button, Typography, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Slide, TextField } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import Search from "@mui/icons-material/Search";
+import { formatGold } from "../goldUtils";
 
 // Helper function to convert YYYY-MM to month name
 const convertToMonthName = (yearMonth) => {
@@ -310,35 +311,19 @@ function Events({ logout }) {
                         </Box>
 
                         <Box sx={{ ml: 3, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                          {event.price === 0 ? (
-                            <Chip
-                              label="Free"
-                              clickable={false}
-                              onClick={() => {}}
-                              sx={{
-                                backgroundColor: "#e8f5e8",
-                                color: "#2e7d32",
-                                fontFamily: "Poppins",
-                                fontWeight: "600",
-                                mb: 2,
-                                minWidth: "80px",
-                              }}
-                            />
-                          ) : (
-                            <Chip
-                              label={`${event.price} Gold`}
-                              clickable={false}
-                              onClick={() => {}}
-                              sx={{
-                                backgroundColor: "#ff001e",
-                                color: "#ffffff",
-                                fontFamily: "Poppins",
-                                fontWeight: "600",
-                                mb: 2,
-                                minWidth: "80px",
-                              }}
-                            />
-                          )}
+                          <Chip
+                            label={event.price === 0 ? "Free" : `${formatGold(event.price)} GOLD`}
+                            clickable={false}
+                            onClick={() => {}}
+                            sx={{
+                              backgroundColor: event.price === 0 ? "#e8f5e8" : "#ff001e",
+                              color: event.price === 0 ? "#2e7d32" : "#ffffff",
+                              fontFamily: "Poppins",
+                              fontWeight: "600",
+                              mb: 2,
+                              minWidth: "80px",
+                            }}
+                          />
 
                           {event.end_date && (
                             <Typography variant="body2" sx={{ fontFamily: "Poppins", color: "#666", fontSize: "12px", mb: 1 }}>

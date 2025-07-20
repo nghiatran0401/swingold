@@ -1,12 +1,13 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { fetchItems, recordOnchainPurchase } from "../api";
+import React, { useState, useEffect } from "react";
+import { fetchItems, recordOnchainPurchase, fetchUserBalance } from "../api";
 import Navbar from "../components/Navbar";
 import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Alert } from "@mui/material";
-import { Search, FilterList } from "@mui/icons-material";
+import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
 import debounce from "lodash.debounce";
 import { ethers } from "ethers";
-
-// TODO: come back to this later
+import TradeManagerABI from "../abi/TradeManagerABI.json";
+import SwingoldABI from "../abi/SwingoldABI.json";
+import { formatGold } from "../goldUtils";
 
 function Items({ logout }) {
   const [searchInput, setSearchInput] = useState("");
@@ -21,13 +22,32 @@ function Items({ logout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [user, setUser] = useState(null);
+  const [onchainBalance, setOnchainBalance] = useState(null);
+  const [rawBalance, setRawBalance] = useState(null);
+  const [walletStatus, setWalletStatus] = useState("");
+
   // Fetch items on mount
   useEffect(() => {
     setLoading(true);
+    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+    setUser(userObj);
+    setWalletAddress(userObj?.wallet_address || "");
+
     fetchItems()
       .then((data) => setItems(data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+
+    if (userObj?.wallet_address) {
+      fetchUserBalance(userObj.wallet_address)
+        .then((raw) => {
+          setRawBalance(raw);
+          const formatted = formatGold(raw);
+          setOnchainBalance(formatted);
+        })
+        .catch(() => setOnchainBalance(null));
+    }
   }, []);
 
   // Combined debounced search and sort
@@ -35,7 +55,6 @@ function Items({ logout }) {
     const handler = debounce((searchValue) => {
       let processed = items;
 
-      // Search items
       if (searchValue) {
         processed = processed.filter((item) => item.name.toLowerCase().includes(searchValue.toLowerCase()) || (item.description || "").toLowerCase().includes(searchValue.toLowerCase()));
       }
@@ -70,7 +89,7 @@ function Items({ logout }) {
   const [txHash, setTxHash] = useState("");
   const [isTxLoading, setIsTxLoading] = useState(false);
 
-  // On-chain purchase handler
+  // Improved handlePurchase
   const handlePurchase = async () => {
     if (!window.ethereum) {
       setTxStatus("MetaMask not detected. Please install MetaMask!");
@@ -84,42 +103,101 @@ function Items({ logout }) {
       setTxStatus("No item selected.");
       return;
     }
+    if (Number(rawBalance) < Number(selectedItem.price) * 1e18) {
+      setTxStatus("Insufficient balance to purchase this item.");
+      return;
+    }
+
     setIsTxLoading(true);
     setTxStatus("");
+
     try {
-      // Example: Assume you have the contract ABI and address
       const contractAddress = process.env.REACT_APP_TRADE_MANAGER_ADDRESS;
-      const contractABI = JSON.parse(process.env.REACT_APP_TRADE_MANAGER_ABI || "[]");
+      const tokenAddress = process.env.REACT_APP_SWINGOLD_ADDRESS;
+      const contractABI = TradeManagerABI;
+      const swingoldABI = SwingoldABI;
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
+
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-      // Send the transaction (replace with your contract's method)
-      const tx = await contract.createTrade(
-        walletAddress, // seller (or use a real seller address)
-        selectedItem.name,
-        ethers.parseUnits(selectedItem.price.toString(), 18) // adjust decimals as needed
-      );
-      setTxStatus("Transaction sent. Waiting for confirmation...");
-      const receipt = await tx.wait();
-      setTxHash(receipt.hash);
+      const token = new ethers.Contract(tokenAddress, swingoldABI, signer);
+      const price = ethers.parseUnits(selectedItem.price.toString(), 18);
+      const sellerAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+
+      // 1. Approve TradeManager to spend tokens
+      const approveTx = await token.approve(contractAddress, price);
+      await approveTx.wait();
+
+      // 2. Create trade (returns tradeId)
+      const createTx = await contract.createTrade(sellerAddress, selectedItem.name, price);
+      const createReceipt = await createTx.wait();
+      // Extract tradeId from event logs (assumes TradeCreated event emits tradeId as first arg)
+      const tradeCreatedEvent = createReceipt.logs
+        .map((log) => {
+          try {
+            return contract.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((e) => e && e.name === "TradeCreated");
+      const tradeId = tradeCreatedEvent ? tradeCreatedEvent.args[0].toString() : null;
+      if (!tradeId) throw new Error("Failed to get tradeId from event");
+
+      // 3. Confirm trade (moves tokens)
+      const confirmTx = await contract.confirmTrade(tradeId);
+      const confirmReceipt = await confirmTx.wait();
+      setTxHash(confirmReceipt.hash);
       setTxStatus("Transaction confirmed!");
+
       // Send tx hash and purchase info to backend
       await recordOnchainPurchase({
         item_id: selectedItem.id,
         price: selectedItem.price,
-        tx_hash: receipt.hash,
-        wallet_address: walletAddress,
-        size: selectedSize,
+        tx_hash: confirmReceipt.hash,
+        wallet_address: user?.wallet_address,
+        quantity: 1,
       });
       setPurchased(true);
-      // Save wallet address to localStorage for persistence
-      localStorage.setItem("walletAddress", walletAddress);
+
+      // Update balance after purchase
+      const newRaw = await fetchUserBalance(walletAddress);
+      setRawBalance(newRaw);
+      const formattedNew = formatGold(newRaw);
+      setOnchainBalance(formattedNew);
     } catch (err) {
       setTxStatus("Transaction failed: " + (err?.message || err?.toString() || "Unknown error"));
     } finally {
       setIsTxLoading(false);
     }
   };
+
+  // Wallet section UI
+  const renderWalletSection = () => (
+    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", my: 4 }}>
+      <Paper elevation={3} sx={{ p: 3, borderRadius: 4, minWidth: 320, display: "flex", alignItems: "center", gap: 3, background: "#fffbe6" }}>
+        <AccountBalanceWallet sx={{ fontSize: 40, color: "#ffb300" }} />
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontFamily: "Poppins", color: "#888" }}>
+            Wallet
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 700 }}>
+              {`${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}`}
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{ fontFamily: "Poppins", color: "#ff001e", fontWeight: 600, mt: 0.5 }}>
+            {onchainBalance !== null ? `${onchainBalance} GOLD` : "-"}
+          </Typography>
+        </Box>
+      </Paper>
+      {walletStatus && (
+        <Alert severity="info" sx={{ ml: 2 }}>
+          {walletStatus}
+        </Alert>
+      )}
+    </Box>
+  );
 
   return (
     <>
@@ -215,6 +293,9 @@ function Items({ logout }) {
             </Stack>
           </Box>
 
+          {/* Wallet section */}
+          {renderWalletSection()}
+
           {/* Items Grid */}
           <Box sx={{ mx: "auto", py: 4 }}>
             <Grid container spacing={2} justifyContent="center">
@@ -301,7 +382,7 @@ function Items({ logout }) {
                           mb: 1,
                         }}
                       >
-                        {item.price} Gold
+                        {item.price} GOLD
                       </Typography>
                       {/* View Detail button */}
                       <Button
@@ -345,6 +426,7 @@ function Items({ logout }) {
             </Box>
           )}
         </Box>
+
         <Dialog
           open={!!selectedItem}
           onClose={() => {

@@ -7,7 +7,7 @@ const outputDir = process.env.ABI_OUTPUT_DIR || "./contracts";
 
 const contracts = [
   { name: "TradeManager", artifactPath: "./artifacts/contracts/TradeManager.sol/TradeManager.json", abiOut: "TradeManagerABI.json" },
-  { name: "Token", artifactPath: "./artifacts/contracts/Token.sol/Token.json", abiOut: "TokenABI.json" },
+  { name: "Swingold", artifactPath: "./artifacts/contracts/Swingold.sol/Swingold.json", abiOut: "SwingoldABI.json" },
 ];
 
 if (!fs.existsSync(path.resolve(__dirname, outputDir))) {

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 // This contract is a custom token (ERC20) that represents the Swinburne Gold.
 // It allows users to transfer tokens between addresses and track their history.
 
-contract Token is ERC20 {
+contract Swingold is ERC20 {
     address public owner;
 
     struct HistoryRecord {
@@ -24,7 +24,7 @@ contract Token is ERC20 {
         _;
     }
 
-    constructor(uint256 initialSupply) ERC20("Token", "GLD") {
+    constructor(uint256 initialSupply) ERC20("Swingold", "GOLD") {
         owner = msg.sender;
         _mint(msg.sender, initialSupply);
     }

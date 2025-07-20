@@ -70,6 +70,9 @@ class Transaction(Base):
     date = Column(String(50), nullable=False)
     time = Column(String(20), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=True)
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=True)
+    quantity = Column(Integer, default=1)
     tx_hash = Column(String(66), nullable=True)  # 66 chars for Ethereum tx hash
     status = Column(String(20), nullable=True)   # pending/confirmed/failed
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -85,20 +88,3 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-class EventRegistration(Base):
-    __tablename__ = "event_registrations"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
-    registered_at = Column(DateTime, server_default=func.now())
-    status = Column(Enum(RegistrationStatusEnum), default=RegistrationStatusEnum.registered)
-
-class ItemPurchase(Base):
-    __tablename__ = "item_purchases"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
-    quantity = Column(Integer, default=1)
-    purchased_at = Column(DateTime, server_default=func.now())
-    status = Column(Enum(PurchaseStatusEnum), default=PurchaseStatusEnum.completed)

@@ -4,6 +4,7 @@ import { History, Send, GetApp, AccountBalanceWallet, CheckCircle, Link as LinkI
 import { ethers } from "ethers";
 import Navbar from "../components/Navbar";
 import { fetchTransactions, fetchUserBalance, requestWalletChallenge, verifyWalletSignature, updateWalletAddress } from "../api";
+import { formatGold } from "../goldUtils";
 
 const cardBase = {
   p: { xs: 3, sm: 4 },
@@ -14,37 +15,35 @@ const cardBase = {
 
 function Wallet({ logout }) {
   const [currentView, setCurrentView] = useState("main");
-  const [transactionHistory, setTransactionHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [onchainBalance, setOnchainBalance] = useState(null);
+  const [transactionHistory, setTransactionHistory] = useState([]);
   const [walletStatus, setWalletStatus] = useState("");
   const [isWalletLoading, setIsWalletLoading] = useState(false);
-  const [onchainBalance, setOnchainBalance] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // // Load user from localStorage when on mount
+  // Load user from localStorage when on mount
   useEffect(() => {
     setLoading(true);
 
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     setUserProfile(user);
 
-    const walletAddr = user?.wallet_address;
-    const balancePromise = walletAddr ? fetchUserBalance(walletAddr) : Promise.resolve(null);
-    Promise.all([balancePromise, fetchTransactions(1)])
+    Promise.all([fetchUserBalance(user?.wallet_address), fetchTransactions(user?.id)])
       .then(([rawBalance, txs]) => {
-        const eth = Number(rawBalance) / 1e18;
-        const formatted = eth.toLocaleString(undefined, {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 4,
-        });
-        setOnchainBalance(formatted + " ETH");
+        const formatted = formatGold(rawBalance);
+        setOnchainBalance(formatted);
         setTransactionHistory(txs);
       })
       .catch((err) => setError(err.message));
 
     setLoading(false);
   }, []);
+
+  // Top-level wallet connection status
+  const isWalletConnected = !!userProfile?.wallet_address;
+  const shortWallet = isWalletConnected ? `${userProfile.wallet_address.slice(0, 6)}...${userProfile.wallet_address.slice(-4)}` : null;
 
   const connectWallet = async () => {
     const updateWalletStatus = (status) => setWalletStatus(status);
@@ -98,7 +97,7 @@ function Wallet({ logout }) {
         <Box sx={{ ...cardBase, textAlign: "center", minHeight: "400px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", px: 2 }}>
           <Box component="img" src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" alt="Gold Coin" sx={{ width: 120, height: 120, mb: 3 }} />
           <Typography variant="h2" sx={{ fontFamily: "Poppins", fontWeight: 800, color: "#2A2828", mb: 1 }}>
-            {onchainBalance !== null ? onchainBalance : "-"}
+            {onchainBalance !== null ? `${onchainBalance} GOLD` : "-"}
           </Typography>
           <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#444" }}>
             On-chain Balance
@@ -224,16 +223,24 @@ function Wallet({ logout }) {
     </Button>
   );
 
-  if (loading) return <div>Loading wallet...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  // Top-level wallet connection status
-  const isWalletConnected = !!userProfile?.wallet_address;
-  const shortWallet = isWalletConnected ? `${userProfile.wallet_address.slice(0, 6)}...${userProfile.wallet_address.slice(-4)}` : null;
-
   return (
     <>
       <Navbar logout={logout} />
+
+      {loading && (
+        <Box sx={{ position: "fixed", top: 64, left: 0, width: "100%", zIndex: 2000, bgcolor: "rgba(255,255,255,0.7)", textAlign: "center", py: 2 }}>
+          <Typography variant="body1">Loading items...</Typography>
+        </Box>
+      )}
+
+      {error && (
+        <Box sx={{ position: "fixed", top: 64, left: 0, width: "100%", zIndex: 2000, bgcolor: "#ffebee", textAlign: "center", py: 2 }}>
+          <Typography variant="body1" color="error">
+            Error: {error}
+          </Typography>
+        </Box>
+      )}
+
       <Box sx={{ backgroundColor: "#f3f3f3", minHeight: "100vh", pt: 10, pb: 4 }}>
         <Typography
           variant="h4"

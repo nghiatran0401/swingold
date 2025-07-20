@@ -54,30 +54,14 @@ CREATE TABLE IF NOT EXISTS transactions (
     date VARCHAR(50) NOT NULL,
     time VARCHAR(20),
     user_id INT NOT NULL,
+    event_id INT,
+    item_id INT,
+    quantity INT DEFAULT 1,
     tx_hash VARCHAR(66),
     status VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS user_event_registration (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    event_id INT NOT NULL,
-    registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('registered', 'cancelled', 'attended') DEFAULT 'registered',
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (event_id) REFERENCES events(id)
-);
-
-CREATE TABLE IF NOT EXISTS user_item_purchase (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    item_id INT NOT NULL,
-    quantity INT DEFAULT 1,
-    purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('pending', 'completed', 'cancelled') DEFAULT 'completed',
-    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (event_id) REFERENCES events(id),
     FOREIGN KEY (item_id) REFERENCES items(id)
 );
 
@@ -99,8 +83,9 @@ INSERT INTO events (id, name, category, start_datetime, end_datetime, price, loc
 
 -- Insert user & admin
 INSERT INTO users (id, username, email, wallet_address, password_hash, is_active, is_admin) VALUES
-(1, 'user', 'user@swinburne.edu.au', NULL, 'cos30049', true, false),
-(2, 'admin', 'admin@swinburne.edu.au', NULL, 'cos30049', true, true);
+(1, 'admin', 'admin@swinburne.edu.au', NULL, 'cos30049', true, true),
+(2, 'user1', 'user1@swinburne.edu.au', NULL, 'cos30049', true, false),
+(3, 'user2', 'user2@swinburne.edu.au', NULL, 'cos30049', true, false);
 
 -- Create indexes for better performance
 CREATE INDEX idx_items_name ON items(name);

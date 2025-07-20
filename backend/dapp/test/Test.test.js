@@ -4,16 +4,16 @@ const { parseEther, formatEther } = require("ethers");
 
 const { ethers } = hre;
 
-describe("Token & TradeManager Integration (Ethers v6)", function () {
+describe("Swingold & TradeManager Integration (Ethers v6)", function () {
   let gold, trade;
   let owner, buyer, seller, other;
 
   beforeEach(async () => {
     [owner, buyer, seller, other] = await ethers.getSigners();
 
-    // Deploy Token
-    const Token = await ethers.getContractFactory("Token");
-    gold = await Token.connect(owner).deploy(parseEther("10000"));
+    // Deploy Swingold
+    const Swingold = await ethers.getContractFactory("Swingold");
+    gold = await Swingold.connect(owner).deploy(parseEther("10000"));
     await gold.waitForDeployment();
 
     // Deploy TradeManager with token address
@@ -85,7 +85,7 @@ describe("Token & TradeManager Integration (Ethers v6)", function () {
     expect(balAfter).to.equal(balBefore);
   });
 
-  it("should record transfer history on token", async () => {
+  it("should record transfer history on swingold", async () => {
     await gold.connect(buyer).transferGold(await seller.getAddress(), parseEther("20"));
 
     const buyerHistory = await gold.getHistory(await buyer.getAddress());

@@ -3,8 +3,8 @@
 
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
-from services.models import StatusEnum
+from typing import Optional, List
+from services.models import StatusEnum, DirectionEnum
 
 
 class EventBase(BaseModel):
@@ -76,6 +76,30 @@ class ItemOut(ItemBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class TransactionBase(BaseModel):
+    amount: float
+    direction: DirectionEnum
+    description: str
+    date: str
+    time: Optional[str] = None
+    user_id: int
+    event_id: Optional[int] = None
+    item_id: Optional[int] = None
+    quantity: int = 1
+    tx_hash: Optional[str] = None
+    status: Optional[str] = None
+
+class TransactionCreate(TransactionBase):
+    pass
+
+class TransactionOut(TransactionBase):
+    id: int
+    created_at: datetime
 
     class Config:
         orm_mode = True

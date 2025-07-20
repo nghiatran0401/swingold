@@ -4,6 +4,7 @@ from datetime import datetime
 from services.database import get_db
 import services.models as models
 from services.web3 import create_trade, confirm_trade, get_balance
+from services.schemas import TransactionOut
 
 router = APIRouter(
     prefix="/transactions/onchain",
@@ -38,6 +39,7 @@ def create_trade_onchain(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"On-chain trade failed: {str(e)}")
 
+
 @router.post("/confirm/{trade_id}")
 def confirm_trade_onchain(
     trade_id: int,
@@ -62,6 +64,70 @@ def confirm_trade_onchain(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"On-chain confirm failed: {str(e)}")
 
+
+@router.post("/purchase", response_model=TransactionOut, status_code=status.HTTP_201_CREATED)
+def record_onchain_purchase(
+    purchase: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Record an on-chain purchase or event registration after verifying the tx_hash.
+    Expects: {item_id, event_id, price, tx_hash, wallet_address, quantity}
+    """
+    try:
+        # Validate required fields
+        wallet_address = purchase.get("wallet_address")
+        if not wallet_address:
+            raise HTTPException(status_code=400, detail="wallet_address is required")
+        price = purchase.get("price")
+        if price is None:
+            raise HTTPException(status_code=400, detail="price is required")
+        item_id = purchase.get("item_id")
+        event_id = purchase.get("event_id")
+        quantity = purchase.get("quantity", 1)
+        tx_hash = purchase.get("tx_hash")
+
+        # Find user by wallet_address
+        user = db.query(models.User).filter(models.User.wallet_address == wallet_address).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User with this wallet address not found")
+        
+        # Compose description and direction
+        now = datetime.now()
+        desc = ""
+        direction = None
+        if item_id:
+            desc = f"On-chain purchase of item_id {item_id}, quantity: {quantity}, tx: {tx_hash}"
+            direction = models.DirectionEnum.debit
+        elif event_id:
+            desc = f"On-chain event registration for event_id {event_id}, tx: {tx_hash}"
+            direction = models.DirectionEnum.credit
+        else:
+            desc = f"On-chain transaction, tx: {tx_hash}"
+            direction = models.DirectionEnum.debit
+
+        db_transaction = models.Transaction(
+            amount=price,
+            direction=direction,
+            description=desc,
+            date=now.strftime("%Y-%m-%d"),
+            time=now.strftime("%H:%M:%S"),
+            user_id=user.id,
+            item_id=item_id,
+            event_id=event_id,
+            quantity=quantity,
+            tx_hash=tx_hash,
+            status="pending"
+        )
+        db.add(db_transaction)
+        db.commit()
+        db.refresh(db_transaction)
+        return db_transaction
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to record on-chain purchase: {str(e)}")
+
+
 """Get token balance of an address from the blockchain."""
 @router.get("/balance/{address}")
 def get_onchain_balance(address: str):
@@ -70,37 +136,3 @@ def get_onchain_balance(address: str):
         return {"address": address, "balance": balance}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch balance: {str(e)}")
-
-@router.post("/purchase", status_code=status.HTTP_201_CREATED)
-def record_onchain_purchase(
-    purchase: dict = Body(...),
-    db: Session = Depends(get_db)
-):
-    """
-    Record an on-chain purchase after verifying the tx_hash.
-    Expects: {item_id, price, tx_hash, wallet_address, size}
-    """
-    try:
-        # Find user by wallet_address
-        user = db.query(models.User).filter(models.User.wallet_address == purchase["wallet_address"]).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User with this wallet address not found")
-        # TODO: Verify tx_hash on-chain (placeholder)
-        # For now, just record the transaction
-        db_transaction = models.Transaction(
-            amount=purchase["price"],
-            direction=models.DirectionEnum.debit,
-            description=f"On-chain purchase of item_id {purchase['item_id']}, size: {purchase.get('size', '')}, tx: {purchase['tx_hash']}",
-            date=datetime.now().strftime("%Y-%m-%d"),
-            time=datetime.now().strftime("%H:%M:%S"),
-            user_id=user.id,
-            tx_hash=purchase["tx_hash"],
-            status="pending"
-        )
-        db.add(db_transaction)
-        db.commit()
-        db.refresh(db_transaction)
-        return {"status": "success", "db_id": db_transaction.id}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to record on-chain purchase: {str(e)}")
