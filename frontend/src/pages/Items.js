@@ -5,9 +5,9 @@ import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, Form
 import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
 import debounce from "lodash.debounce";
 import { ethers } from "ethers";
+import { formatGold } from "../goldUtils";
 import TradeManagerABI from "../abi/TradeManagerABI.json";
 import SwingoldABI from "../abi/SwingoldABI.json";
-import { formatGold } from "../goldUtils";
 
 function Items({ logout }) {
   const [searchInput, setSearchInput] = useState("");
@@ -28,6 +28,8 @@ function Items({ logout }) {
   const [walletStatus, setWalletStatus] = useState("");
 
   // Fetch items on mount
+  // TODO: get balance on this component temporarily, should be globally
+  // come back to this later
   useEffect(() => {
     setLoading(true);
     const userObj = JSON.parse(localStorage.getItem("user") || "{}");
@@ -89,7 +91,7 @@ function Items({ logout }) {
   const [txHash, setTxHash] = useState("");
   const [isTxLoading, setIsTxLoading] = useState(false);
 
-  // Improved handlePurchase
+  // TODO: 1st version of working, not best practice, will refactor later
   const handlePurchase = async () => {
     if (!window.ethereum) {
       setTxStatus("MetaMask not detected. Please install MetaMask!");
@@ -112,6 +114,7 @@ function Items({ logout }) {
     setTxStatus("");
 
     try {
+      // Addresses and ABIs
       const contractAddress = process.env.REACT_APP_TRADE_MANAGER_ADDRESS;
       const tokenAddress = process.env.REACT_APP_SWINGOLD_ADDRESS;
       const contractABI = TradeManagerABI;
@@ -119,38 +122,47 @@ function Items({ logout }) {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
+      // Contract instances
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
       const token = new ethers.Contract(tokenAddress, swingoldABI, signer);
+
+      // Price in token's smallest unit
       const price = ethers.parseUnits(selectedItem.price.toString(), 18);
+
+      // Seller address (change as needed)
       const sellerAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
       // 1. Approve TradeManager to spend tokens
+      setTxStatus("Approving token spend...");
       const approveTx = await token.approve(contractAddress, price);
       await approveTx.wait();
 
-      // 2. Create trade (returns tradeId)
+      // 2. Create trade
+      setTxStatus("Creating trade...");
       const createTx = await contract.createTrade(sellerAddress, selectedItem.name, price);
       const createReceipt = await createTx.wait();
-      // Extract tradeId from event logs (assumes TradeCreated event emits tradeId as first arg)
-      const tradeCreatedEvent = createReceipt.logs
-        .map((log) => {
-          try {
-            return contract.interface.parseLog(log);
-          } catch {
-            return null;
+
+      // Extract tradeId from TradeCreated event
+      let tradeId = null;
+      for (const log of createReceipt.logs) {
+        try {
+          const parsed = contract.interface.parseLog(log);
+          if (parsed.name === "TradeCreated") {
+            tradeId = parsed.args[0].toString();
+            break;
           }
-        })
-        .find((e) => e && e.name === "TradeCreated");
-      const tradeId = tradeCreatedEvent ? tradeCreatedEvent.args[0].toString() : null;
+        } catch {}
+      }
       if (!tradeId) throw new Error("Failed to get tradeId from event");
 
       // 3. Confirm trade (moves tokens)
+      setTxStatus("Confirming trade...");
       const confirmTx = await contract.confirmTrade(tradeId);
       const confirmReceipt = await confirmTx.wait();
       setTxHash(confirmReceipt.hash);
       setTxStatus("Transaction confirmed!");
 
-      // Send tx hash and purchase info to backend
+      // 4. Record purchase in backend
       await recordOnchainPurchase({
         item_id: selectedItem.id,
         price: selectedItem.price,
@@ -160,7 +172,7 @@ function Items({ logout }) {
       });
       setPurchased(true);
 
-      // Update balance after purchase
+      // 5. Update balance after purchase
       const newRaw = await fetchUserBalance(walletAddress);
       setRawBalance(newRaw);
       const formattedNew = formatGold(newRaw);

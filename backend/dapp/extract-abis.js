@@ -1,9 +1,10 @@
+require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 
 // This script is used to extract the ABIs of the contracts from the artifacts and save them to the contracts directory to use them in the wapp (web3.py)
 
-const outputDir = process.env.ABI_OUTPUT_DIR || "./contracts";
+const outputDir = process.env.ABI_OUTPUT_DIR;
 
 const contracts = [
   { name: "TradeManager", artifactPath: "./artifacts/contracts/TradeManager.sol/TradeManager.json", abiOut: "TradeManagerABI.json" },

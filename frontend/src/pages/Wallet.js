@@ -41,6 +41,13 @@ function Wallet({ logout }) {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", () => window.location.reload());
+      window.ethereum.on("chainChanged", () => window.location.reload());
+    }
+  }, []);
+
   // Top-level wallet connection status
   const isWalletConnected = !!userProfile?.wallet_address;
   const shortWallet = isWalletConnected ? `${userProfile.wallet_address.slice(0, 6)}...${userProfile.wallet_address.slice(-4)}` : null;
