@@ -189,15 +189,23 @@ function Wallet({ logout }) {
       elevation={detailed ? 2 : 1}
       sx={{ p: detailed ? 4 : 3, borderRadius: 3, backgroundColor: "#f8f9fa", border: "1px solid #e9ecef", transition: "all 0.3s ease", "&:hover": { boxShadow: detailed ? "0 4px 12px rgba(0,0,0,0.1)" : "none" } }}
     >
-      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Box>
-          <Typography variant={detailed ? "h5" : "h6"} sx={{ fontFamily: "Poppins", fontWeight: 600, color: tx.amount > 0 ? "#4caf50" : "#ff001e", fontSize: detailed ? "24px" : "18px", mb: 1 }}>
-            {tx.amount > 0 ? "+" : ""}
+          <Typography variant={detailed ? "h5" : "h6"} sx={{ fontFamily: "Poppins", fontWeight: 600, color: tx.direction === "credit" ? "#4caf50" : "#ff001e", fontSize: detailed ? "24px" : "18px", mb: 1 }}>
+            {tx.direction === "credit" ? "+" : "-"}
             {tx.amount}
           </Typography>
           <Typography variant={detailed ? "body1" : "body2"} sx={{ fontFamily: "Poppins", color: "#666", fontSize: detailed ? "14px" : "12px", lineHeight: 1.5 }}>
-            {tx.date} {tx.description}
+            {tx.created_at ? new Date(tx.created_at).toLocaleString() : ""}
+            <br />
+            {tx.description}
           </Typography>
+          {tx.tx_hash && (
+            <Typography variant="caption" sx={{ fontFamily: "monospace", color: "#888" }}>
+              Tx: {tx.tx_hash}
+            </Typography>
+          )}
+          {tx.status && <Chip label={tx.status} size="small" sx={{ ml: 1, backgroundColor: tx.status === "confirmed" ? "#4caf50" : tx.status === "failed" ? "#ff001e" : "#ffb300", color: "#fff" }} />}
         </Box>
       </Box>
     </Paper>

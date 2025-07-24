@@ -2,7 +2,7 @@
 # Defines the database models for the application
 
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Numeric, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, Enum, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from services.database import Base
 import enum
@@ -12,22 +12,16 @@ class DirectionEnum(enum.Enum):
     credit = "credit"
     debit = "debit"
 
-# Enum for item and event status
+# Enum for transaction status
 class StatusEnum(enum.Enum):
+    pending = "pending"
+    confirmed = "confirmed"
+    failed = "failed"
+
+# Enum for item and event status
+class ItemEventStatusEnum(enum.Enum):
     upcoming = "upcoming"
     active = "active"
-    completed = "completed"
-    cancelled = "cancelled"
-
-# Enum for event registration status
-class RegistrationStatusEnum(enum.Enum):
-    registered = "registered"
-    cancelled = "cancelled"
-    attended = "attended"
-
-# Enum for item purchase status
-class PurchaseStatusEnum(enum.Enum):
-    pending = "pending"
     completed = "completed"
     cancelled = "cancelled"
 
@@ -39,7 +33,7 @@ class Item(Base):
     image_url = Column(String(500), nullable=True)
     price = Column(Numeric(10, 1), nullable=False, default=0.0)
     tags = Column(String(255), nullable=True)
-    status = Column(Enum(StatusEnum), default=StatusEnum.upcoming)
+    status = Column(Enum(ItemEventStatusEnum), default=ItemEventStatusEnum.upcoming)
     note = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -57,7 +51,7 @@ class Event(Base):
     seats_available = Column(Integer, nullable=True)
     image_url = Column(String(500), nullable=True)
     tags = Column(String(255), nullable=True)
-    status = Column(Enum(StatusEnum), default=StatusEnum.upcoming)
+    status = Column(Enum(ItemEventStatusEnum), default=ItemEventStatusEnum.upcoming)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -66,15 +60,12 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
     amount = Column(Numeric(18, 8), nullable=False)
     direction = Column(Enum(DirectionEnum), nullable=False)
-    description = Column(String(500), nullable=False)
-    date = Column(String(50), nullable=False)
-    time = Column(String(20), nullable=True)
+    tx_hash = Column(String(66), unique=True, nullable=False)
+    description = Column(String(500), nullable=True)
+    status = Column(Enum(StatusEnum), default=StatusEnum.pending)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     event_id = Column(Integer, ForeignKey("events.id"), nullable=True)
     item_id = Column(Integer, ForeignKey("items.id"), nullable=True)
-    quantity = Column(Integer, default=1)
-    tx_hash = Column(String(66), nullable=True)  # 66 chars for Ethereum tx hash
-    status = Column(String(20), nullable=True)   # pending/confirmed/failed
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class User(Base):

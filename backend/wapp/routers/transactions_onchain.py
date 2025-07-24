@@ -25,11 +25,12 @@ def create_trade_onchain(
         tx_hash = create_trade(seller, item_name, item_price)
         # Record transaction in DB
         db_transaction = models.Transaction(
-            amount=f"-{item_price}",
+            amount=item_price,
+            direction=models.DirectionEnum.debit,
             description=f"On-chain purchase of {item_name}, tx: {tx_hash}",
-            date=datetime.now().strftime("%Y-%m-%d"),  
-            time=datetime.now().strftime("%H:%M:%S"),    
-            user_id=None
+            user_id=None,  # Set this to the correct user_id if available
+            tx_hash=tx_hash,
+            status="pending"
         )
         db.add(db_transaction)
         db.commit()
@@ -50,11 +51,12 @@ def confirm_trade_onchain(
     try:
         tx_hash = confirm_trade(trade_id)
         db_transaction = models.Transaction(
-            amount="0",
+            amount=0,
+            direction=models.DirectionEnum.debit,
             description=f"On-chain trade confirmation for trade_id {trade_id}, tx: {tx_hash}",
-            date=datetime.now().strftime("%Y-%m-%d"),  
-            time=datetime.now().strftime("%H:%M:%S"),    
-            user_id=None
+            user_id=None,  # Set this to the correct user_id if available
+            tx_hash=tx_hash,
+            status="pending"
         )
         db.add(db_transaction)
         db.commit()
@@ -84,7 +86,6 @@ def record_onchain_purchase(
             raise HTTPException(status_code=400, detail="price is required")
         item_id = purchase.get("item_id")
         event_id = purchase.get("event_id")
-        quantity = purchase.get("quantity", 1)
         tx_hash = purchase.get("tx_hash")
 
         # Find user by wallet_address
@@ -93,11 +94,10 @@ def record_onchain_purchase(
             raise HTTPException(status_code=404, detail="User with this wallet address not found")
         
         # Compose description and direction
-        now = datetime.now()
         desc = ""
         direction = None
         if item_id:
-            desc = f"On-chain purchase of item_id {item_id}, quantity: {quantity}, tx: {tx_hash}"
+            desc = f"On-chain purchase of item_id {item_id}, tx: {tx_hash}"
             direction = models.DirectionEnum.debit
         elif event_id:
             desc = f"On-chain event registration for event_id {event_id}, tx: {tx_hash}"
@@ -110,12 +110,9 @@ def record_onchain_purchase(
             amount=price,
             direction=direction,
             description=desc,
-            date=now.strftime("%Y-%m-%d"),
-            time=now.strftime("%H:%M:%S"),
             user_id=user.id,
             item_id=item_id,
             event_id=event_id,
-            quantity=quantity,
             tx_hash=tx_hash,
             status="pending"
         )

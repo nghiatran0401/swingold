@@ -4,7 +4,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
-from services.models import StatusEnum, DirectionEnum
+from services.models import StatusEnum, DirectionEnum, ItemEventStatusEnum
 
 
 class EventBase(BaseModel):
@@ -18,7 +18,7 @@ class EventBase(BaseModel):
     seats_available: Optional[int] = None
     image_url: Optional[str] = None
     tags: Optional[str] = None
-    status: Optional[StatusEnum] = StatusEnum.upcoming
+    status: Optional[ItemEventStatusEnum] = ItemEventStatusEnum.upcoming
 
 
 class EventCreate(EventBase):
@@ -36,7 +36,7 @@ class EventUpdate(BaseModel):
     seats_available: Optional[int]
     image_url: Optional[str]
     tags: Optional[str]
-    status: Optional[StatusEnum]
+    status: Optional[ItemEventStatusEnum]
 
 
 class EventOut(EventBase):
@@ -54,7 +54,7 @@ class ItemBase(BaseModel):
     image_url: Optional[str] = None
     price: float
     tags: Optional[str] = None
-    status: Optional[StatusEnum] = StatusEnum.upcoming
+    status: Optional[ItemEventStatusEnum] = ItemEventStatusEnum.upcoming
     note: Optional[str] = None
 
 
@@ -68,7 +68,7 @@ class ItemUpdate(BaseModel):
     image_url: Optional[str]
     price: Optional[float]
     tags: Optional[str]
-    status: Optional[StatusEnum]
+    status: Optional[ItemEventStatusEnum]
     note: Optional[str]
 
 
@@ -84,21 +84,26 @@ class ItemOut(ItemBase):
 class TransactionBase(BaseModel):
     amount: float
     direction: DirectionEnum
-    description: str
-    date: str
-    time: Optional[str] = None
+    description: Optional[str] = None
+    tx_hash: str
+    status: Optional[str] = None
     user_id: int
     event_id: Optional[int] = None
     item_id: Optional[int] = None
-    quantity: int = 1
-    tx_hash: Optional[str] = None
-    status: Optional[str] = None
 
 class TransactionCreate(TransactionBase):
     pass
 
-class TransactionOut(TransactionBase):
+class TransactionOut(BaseModel):
     id: int
+    amount: float
+    direction: DirectionEnum
+    tx_hash: str
+    description: Optional[str]
+    status: Optional[str]
+    user_id: int
+    event_id: Optional[int]
+    item_id: Optional[int]
     created_at: datetime
 
     class Config:

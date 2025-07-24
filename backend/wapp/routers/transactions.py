@@ -20,12 +20,9 @@ def read_transactions(
     user_id: Optional[int] = Query(None, description="Filter by user ID"),
     db: Session = Depends(get_db)
 ):
-    """Get all transactions with optional filtering and pagination"""
     query = db.query(models.Transaction)
-    
     if user_id:
         query = query.filter(models.Transaction.user_id == user_id)
-    
     transactions = query.order_by(models.Transaction.created_at.desc()).offset(skip).limit(limit).all()
     return transactions
 
