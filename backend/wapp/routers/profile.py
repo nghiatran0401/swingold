@@ -1,11 +1,18 @@
 # https://stackoverflow.com/questions/66736079/verify-metamask-signature-ethereum-using-python
 # https://eth-account.readthedocs.io/en/stable/
-# This is a classic Web3 wallet verification pattern
 
-# Cryptographic Principles: based on digital signature verification
-# - Only the private key holder can sign a message
-# - Anyone can verify the signature matches the public address
-# - This proves ownership without revealing the private key
+# “Sign-In With Ethereum” (SIWE) or “Web3 login”.
+
+# This challenge-response signature flow is the industry standard for authenticating users with their Ethereum wallet in decentralized applications (dApps)
+# - Proof of Wallet Ownership
+# - Secure, Passwordless Authentication
+
+# The function connects a user's MetaMask wallet, requests a challenge from your backend, asks the user to sign it, and then verifies the signature with the backend. If successful, it links the wallet address to the user's profile.
+
+# Concepts:
+# - Public-Key Cryptography
+# - Challenge-Response Authentication
+# - EIP-4361: Sign-In With Ethereum
 
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session

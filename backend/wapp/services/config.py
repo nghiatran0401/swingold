@@ -21,6 +21,15 @@ class Settings:
     # CORS settings
     FRONTEND_URL: str = os.getenv("FRONTEND_URL")
 
+    # Blockchain settings
+    BLOCKCHAIN_RPC_URL: str = os.getenv("BLOCKCHAIN_RPC_URL")
+    PRIVATE_KEY: str = os.getenv("PRIVATE_KEY")
+    SWINGOLD_ADDRESS: str = os.getenv("SWINGOLD_ADDRESS")
+    TRADE_MANAGER_ADDRESS: str = os.getenv("TRADE_MANAGER_ADDRESS")
+
+    # ABI settings
+    ABI_OUTPUT_DIR: str = os.getenv("ABI_OUTPUT_DIR")
+
     @property
     def DATABASE_URL(self) -> str:
         return f"mysql+mysqlconnector://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
