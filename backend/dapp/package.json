@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "clean": "npx hardhat clean",
-    "compile": "npx hardhat compile && node extract-abis.js",
+    "compile": "npx hardhat compile",
+    "extract-abis": "node extract-abis.js",
     "node": "npx hardhat node",
     "test": "npx hardhat test",
     "deploy": "npx hardhat ignition deploy ./ignition/modules/DeployContracts.js --network localhost"

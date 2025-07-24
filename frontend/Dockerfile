@@ -13,14 +13,12 @@ RUN npm install
 # Copy application code
 COPY . .
 
-# Copy the ABI copy script
-COPY copy-abis.sh /app/copy-abis.sh
-
-# Make the script executable
-RUN chmod +x /app/copy-abis.sh
+# Copy entrypoint script and make it executable
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 3000
 
-# Run the ABI copy script and then start the app
-CMD ["/bin/sh", "-c", "/app/copy-abis.sh && npm start"]
+# Start the app using the entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

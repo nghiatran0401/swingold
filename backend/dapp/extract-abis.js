@@ -4,6 +4,7 @@ const path = require("path");
 
 // This script is used to extract the ABIs of the contracts from the artifacts and save them to the contracts directory to use them in the wapp (web3.py)
 
+// This is used for both Docker and local development
 const outputDir = process.env.ABI_OUTPUT_DIR;
 
 const contracts = [

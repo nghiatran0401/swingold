@@ -29,7 +29,7 @@ services:
     ports:
       - "8545:8545"
     volumes:
-      - abis:/app/shared-abis
+      - shared-abis:/app/shared-abis
     environment:
       ABI_OUTPUT_DIR: /app/shared-abis
 
@@ -51,7 +51,7 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 8000
       FRONTEND_URL: http://localhost:3000
-      BLOCKCHAIN_RPC_URL: http://127.0.0.1:8545
+      BLOCKCHAIN_RPC_URL: http://backend_hardhat:8545
       PRIVATE_KEY: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
       SWINGOLD_ADDRESS: 0x5FbDB2315678afecb367f032d93F642f64180aa3
       TRADE_MANAGER_ADDRESS: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
@@ -62,7 +62,7 @@ services:
       - db_mysql
       - backend_hardhat
     volumes:
-      - abis:/app/shared-abis
+      - shared-abis:/app/shared-abis
 
   # React Frontend
   # https://hub.docker.com/_/node
@@ -83,11 +83,12 @@ services:
       - backend_fastapi
       - backend_hardhat
     volumes:
-      - abis:/app/shared-abis
+      - shared-abis:/app/shared-abis
 
 # Persists MySQL data so it’s not lost when the container restarts or is removed.
+# Persists shared-abis data to be used by the backend and frontend.
 volumes:
   mysql_data:
     driver: local
-  abis:
+  shared-abis:
     driver: local

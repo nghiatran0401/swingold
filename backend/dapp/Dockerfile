@@ -13,14 +13,12 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
-# Set ABI output directory environment variable for Docker volume
-ENV ABI_OUTPUT_DIR=/app/shared-abis
-
-# Compile contracts and extract ABIs at build time
-RUN npm run compile
+# Copy entrypoint script and make it executable
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8545
 
-# Run the application
-CMD ["npm", "run", "node"]
+# Use entrypoint script to start node, deploy contracts, extract ABIs
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
