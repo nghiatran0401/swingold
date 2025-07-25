@@ -93,6 +93,7 @@ function Items({ logout }) {
 
   // TODO: 1st version of working, not best practice, will refactor later
   const handlePurchase = async () => {
+    // MetaMask/Wallet Checks
     if (!window.ethereum) {
       setTxStatus("MetaMask not detected. Please install MetaMask!");
       return;
@@ -114,25 +115,22 @@ function Items({ logout }) {
     setTxStatus("");
 
     try {
-      // Addresses and ABIs
+      // Prepare for Transaction
       const contractAddress = process.env.REACT_APP_TRADE_MANAGER_ADDRESS;
       const tokenAddress = process.env.REACT_APP_SWINGOLD_ADDRESS;
       const contractABI = TradeManagerABI;
       const swingoldABI = SwingoldABI;
+
+      // Create Contract Instances
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-
-      // Contract instances
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
       const token = new ethers.Contract(tokenAddress, swingoldABI, signer);
 
-      // Price in token's smallest unit
       const price = ethers.parseUnits(selectedItem.price.toString(), 18);
-
-      // Seller address (change as needed)
       const sellerAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
-      // 1. Approve TradeManager to spend tokens
+      // 1. Approve Token Spend
       setTxStatus("Approving token spend...");
       const approveTx = await token.approve(contractAddress, price);
       await approveTx.wait();
