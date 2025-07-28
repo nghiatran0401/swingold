@@ -108,3 +108,16 @@ class TransactionOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class OnchainPurchaseCreate(BaseModel):
+    wallet_address: str
+    price: int
+    item_id: int
+    tx_hash: str
+    quantity: int = 1
+
+class TransferCreate(BaseModel):
+    recipient_address: str
+    amount: float
+    tx_hash: str

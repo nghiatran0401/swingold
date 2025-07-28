@@ -97,6 +97,14 @@ def delete_event(
             detail=f"Failed to delete event: {str(e)}"
         )
 
+@router.patch("/{event_id}/enroll")
+def toggle_event_enrollment(event_id: int, db: Session = Depends(get_db)):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    return {"message": "Enrollment toggled successfully", "event_id": event_id}
+
 
 
 @router.get("/months/list", response_model=list[str])

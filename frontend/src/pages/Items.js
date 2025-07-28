@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { fetchItems, recordOnchainPurchase, fetchUserBalance } from "../api";
 import Navbar from "../components/Navbar";
-import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Alert } from "@mui/material";
+import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Alert, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
 import debounce from "lodash.debounce";
 import { ethers } from "ethers";
 import { formatGold } from "../goldUtils";
-import TradeManagerABI from "../shared-abis/TradeManagerABI.json";
-import SwingoldABI from "../shared-abis/SwingoldABI.json";
+import TradeManagerABI from "./shared-abis/TradeManagerABI.json";
+import SwingoldABI from "./shared-abis/SwingoldABI.json";
 
 function Items({ logout }) {
   const [searchInput, setSearchInput] = useState("");
@@ -18,6 +18,7 @@ function Items({ logout }) {
   const [selectedSize, setSelectedSize] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [purchased, setPurchased] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -83,6 +84,14 @@ function Items({ logout }) {
   const handleViewDetails = (itemId) => {
     const item = filteredAndSortedItems.find((i) => i.id === itemId);
     setSelectedItem(item);
+    setSelectedSize("");
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSelectedItem(null);
+    setSelectedSize("");
   };
 
   // Wallet state
@@ -438,12 +447,8 @@ function Items({ logout }) {
         </Box>
 
         <Dialog
-          open={!!selectedItem}
-          onClose={() => {
-            setSelectedItem(null);
-            setSelectedSize("");
-            setPurchased(false);
-          }}
+          open={dialogOpen}
+          onClose={handleCloseDialog}
           fullWidth
           maxWidth="md"
           PaperProps={{ sx: { borderRadius: 4, backgroundColor: "#f5f5f5" } }}
@@ -491,34 +496,45 @@ function Items({ logout }) {
                       <DialogContentText sx={{ color: "#555" }}>{selectedItem.description || "Product Description. swinburne t shirt, 3 sizes....."}</DialogContentText>
 
                       {/* Item size selection */}
-                      {selectedItem.size && (
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight={600} mb={1}>
-                            Size
-                          </Typography>
-                          <Stack direction="row" spacing={1}>
-                            {selectedItem.size.map((size) => (
-                              <Box
-                                key={size}
-                                onClick={() => setSelectedSize(size)}
-                                sx={{
-                                  px: 2,
-                                  py: 1,
-                                  cursor: "pointer",
-                                  backgroundColor: selectedSize === size ? "#ff001e" : "#ddd",
-                                  color: selectedSize === size ? "#fff" : "#000",
-                                  borderRadius: 1,
-                                  fontWeight: 500,
-                                  fontSize: "0.9rem",
-                                  transition: "all 0.2s ease-in-out",
-                                }}
-                              >
-                                {size}
+                      {selectedItem.tags && (() => {
+                        try {
+                          const sizes = JSON.parse(selectedItem.tags);
+                          if (Array.isArray(sizes) && sizes.length > 0) {
+                            return (
+                              <Box sx={{ mb: 3 }}>
+                                <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2 }}>
+                                  Select Size:
+                                </Typography>
+                                <FormControl component="fieldset">
+                                  <RadioGroup
+                                    value={selectedSize}
+                                    onChange={(e) => setSelectedSize(e.target.value)}
+                                    row
+                                  >
+                                    {sizes.map((size) => (
+                                      <FormControlLabel
+                                        key={size}
+                                        value={size}
+                                        control={<Radio />}
+                                        label={size}
+                                        sx={{
+                                          "& .MuiFormControlLabel-label": {
+                                            fontFamily: "Poppins",
+                                            fontWeight: 500
+                                          }
+                                        }}
+                                      />
+                                    ))}
+                                  </RadioGroup>
+                                </FormControl>
                               </Box>
-                            ))}
-                          </Stack>
-                        </Box>
-                      )}
+                            );
+                          }
+                        } catch (e) {
+                          return null;
+                        }
+                        return null;
+                      })()}
                     </Stack>
                   </Grid>
                 </Grid>
@@ -526,9 +542,13 @@ function Items({ logout }) {
 
               {/* Purchase button */}
               <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+                <Button onClick={handleCloseDialog} color="inherit">
+                  Close
+                </Button>
                 <Button
                   variant="contained"
                   onClick={() => setConfirming(true)}
+                  disabled={selectedItem.tags && JSON.parse(selectedItem.tags || "[]").length > 0 && !selectedSize}
                   sx={{
                     backgroundColor: "#ff001e",
                     borderRadius: "999px",
@@ -540,6 +560,7 @@ function Items({ logout }) {
                     "&:hover": {
                       backgroundColor: "#d4001a",
                     },
+                    "&:disabled": { backgroundColor: "#ccc" },
                   }}
                 >
                   Purchase

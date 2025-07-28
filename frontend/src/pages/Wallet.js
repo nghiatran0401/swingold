@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Box, Typography, Button, Paper, Grid, Stack, Chip, Alert, Divider, CircularProgress } from "@mui/material";
+import { Box, Typography, Button, Paper, Grid, Stack, Chip, Alert, Divider, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
 import { History, Send, GetApp, AccountBalanceWallet, CheckCircle, Link as LinkIcon } from "@mui/icons-material";
 import { ethers } from "ethers";
 import Navbar from "../components/Navbar";
-import { fetchTransactions, fetchUserBalance, requestWalletChallenge, verifyWalletSignature, updateWalletAddress } from "../api";
+import { fetchTransactions, fetchUserBalance, requestWalletChallenge, verifyWalletSignature, updateWalletAddress, sendGold, getTransferHistory, getUserStatistics } from "../api";
 import { formatGold } from "../goldUtils";
 
 const cardBase = {
@@ -22,6 +22,10 @@ function Wallet({ logout }) {
   const [isWalletLoading, setIsWalletLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sendGoldDialog, setSendGoldDialog] = useState(false);
+  const [sendAmount, setSendAmount] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState("");
+  const [statistics, setStatistics] = useState(null);
 
   // Load user from localStorage when on mount
   useEffect(() => {
@@ -30,11 +34,12 @@ function Wallet({ logout }) {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     setUserProfile(user);
 
-    Promise.all([fetchUserBalance(user?.wallet_address), fetchTransactions(user?.id)])
-      .then(([rawBalance, txs]) => {
+    Promise.all([fetchUserBalance(user?.wallet_address), fetchTransactions(user?.id), getUserStatistics(user?.id)])
+      .then(([rawBalance, txs, stats]) => {
         const formatted = formatGold(rawBalance);
         setOnchainBalance(formatted);
         setTransactionHistory(txs);
+        setStatistics(stats);
       })
       .catch((err) => setError(err.message));
 
@@ -98,6 +103,36 @@ function Wallet({ logout }) {
     }
   };
 
+  const handleSendGold = async () => {
+    if (!sendAmount || !recipientAddress) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    try {
+      const transferData = {
+        recipient_address: recipientAddress,
+        amount: parseFloat(sendAmount),
+        tx_hash: `0x${Date.now().toString(16)}`
+      };
+      
+      await sendGold(transferData);
+      setSendGoldDialog(false);
+      setSendAmount("");
+      setRecipientAddress("");
+      
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const updatedTransactions = await fetchTransactions(user?.id);
+      setTransactionHistory(updatedTransactions);
+      
+      const updatedBalance = await fetchUserBalance(user?.wallet_address);
+      setOnchainBalance(formatGold(updatedBalance));
+      
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const renderMainView = () => (
     <Grid container spacing={4} alignItems="center" justifyContent="center">
       <Grid item xs={12} md={5}>
@@ -114,60 +149,93 @@ function Wallet({ logout }) {
       <Grid item xs={12} md={7}>
         <Stack spacing={3}>
           <WalletButton label="View history" icon={<History />} onClick={() => setCurrentView("history")} />
-          <WalletButton label="Give Gold" icon={<Send />} onClick={() => console.log("Give Gold clicked")} />
-          <WalletButton label="Received" icon={<GetApp />} onClick={() => console.log("Received clicked")} />
+          <WalletButton label="Give Gold" icon={<Send />} onClick={() => setSendGoldDialog(true)} />
+          <WalletButton label="Received" icon={<GetApp />} onClick={() => setCurrentView("received")} />
         </Stack>
       </Grid>
     </Grid>
   );
 
-  const renderStatisticsView = () => (
-    <Grid container spacing={4} alignItems="center" justifyContent="center">
-      <Grid item xs={12} md={6}>
-        <Paper elevation={3} sx={{ ...cardBase, textAlign: "center", minHeight: "400px" }}>
-          <Typography variant="h5" sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 4 }}>
-            Statistics
-          </Typography>
-          <Box
-            sx={{
-              width: 200,
-              height: 200,
-              borderRadius: "50%",
-              background: `conic-gradient(#ff001e 0deg 270deg, #f0f0f0 270deg 360deg)`,
-              mx: "auto",
-              mb: 3,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Box sx={{ width: 120, height: 120, borderRadius: "50%", backgroundColor: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828" }}>
-                75%
-              </Typography>
+  const renderStatisticsView = () => {
+    if (!statistics) {
+      return (
+        <Grid container spacing={4} alignItems="center" justifyContent="center">
+          <Typography>Loading statistics...</Typography>
+        </Grid>
+      );
+    }
+
+    const totalSpentPercentage = statistics.total_spent > 0 ? 
+      Math.round((statistics.spending_breakdown.events + statistics.spending_breakdown.items + statistics.spending_breakdown.transfers) / statistics.total_spent * 100) : 0;
+
+    return (
+      <Grid container spacing={4} alignItems="center" justifyContent="center">
+        <Grid item xs={12} md={6}>
+          <Paper elevation={3} sx={{ ...cardBase, textAlign: "center", minHeight: "400px" }}>
+            <Typography variant="h5" sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 4 }}>
+              Spending Statistics
+            </Typography>
+            <Box
+              sx={{
+                width: 200,
+                height: 200,
+                borderRadius: "50%",
+                background: `conic-gradient(#ff001e 0deg ${totalSpentPercentage * 3.6}deg, #f0f0f0 ${totalSpentPercentage * 3.6}deg 360deg)`,
+                mx: "auto",
+                mb: 3,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Box sx={{ width: 120, height: 120, borderRadius: "50%", backgroundColor: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828" }}>
+                  {totalSpentPercentage}%
+                </Typography>
+              </Box>
             </Box>
-          </Box>
-          <Typography variant="body1" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e", textAlign: "center" }}>
-            % spend for events; items;
-            <br />
-            gift friends
-          </Typography>
-        </Paper>
+            <Typography variant="body1" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e", textAlign: "center" }}>
+              Events: {Math.round(statistics.spending_percentage.events)}%
+              <br />
+              Items: {Math.round(statistics.spending_percentage.items)}%
+              <br />
+              Transfers: {Math.round(statistics.spending_percentage.transfers)}%
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Paper elevation={3} sx={{ ...cardBase, minHeight: "400px" }}>
+            <Typography variant="h5" sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }}>
+              Summary
+            </Typography>
+            <Stack spacing={3}>
+              <Box>
+                <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#4caf50" }}>
+                  Total Earned: {formatGold(statistics.total_earned)} GOLD
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e" }}>
+                  Total Spent: {formatGold(statistics.total_spent)} GOLD
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body1" sx={{ fontFamily: "Poppins", color: "#666" }}>
+                  Events: {formatGold(statistics.spending_breakdown.events)} GOLD
+                </Typography>
+                <Typography variant="body1" sx={{ fontFamily: "Poppins", color: "#666" }}>
+                  Items: {formatGold(statistics.spending_breakdown.items)} GOLD
+                </Typography>
+                <Typography variant="body1" sx={{ fontFamily: "Poppins", color: "#666" }}>
+                  Transfers: {formatGold(statistics.spending_breakdown.transfers)} GOLD
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
+        </Grid>
       </Grid>
-      <Grid item xs={12} md={6}>
-        <Paper elevation={3} sx={{ ...cardBase, minHeight: "400px" }}>
-          <Typography variant="h5" sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }}>
-            History
-          </Typography>
-          <Stack spacing={2}>
-            {transactionHistory.map((tx) => (
-              <TransactionCard key={tx.id} tx={tx} />
-            ))}
-          </Stack>
-        </Paper>
-      </Grid>
-    </Grid>
-  );
+    );
+  };
 
   const renderHistoryView = () => (
     <Grid container spacing={4} alignItems="center" justifyContent="center">
@@ -183,6 +251,31 @@ function Wallet({ logout }) {
       </Paper>
     </Grid>
   );
+
+  const renderReceivedView = () => {
+    const receivedTransactions = transactionHistory.filter(tx => tx.direction === "credit");
+    
+    return (
+      <Grid container spacing={4} alignItems="center" justifyContent="center">
+        <Paper elevation={3} sx={{ ...cardBase }}>
+          <Typography variant="h4" sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 4 }}>
+            Received Gold
+          </Typography>
+          <Stack spacing={3}>
+            {receivedTransactions.length === 0 ? (
+              <Typography variant="body1" sx={{ textAlign: "center", color: "#666" }}>
+                No received transactions yet
+              </Typography>
+            ) : (
+              receivedTransactions.map((tx) => (
+                <TransactionCard key={tx.id} tx={tx} detailed />
+              ))
+            )}
+          </Stack>
+        </Paper>
+      </Grid>
+    );
+  };
 
   const TransactionCard = ({ tx, detailed }) => (
     <Paper
@@ -360,6 +453,7 @@ function Wallet({ logout }) {
               {currentView === "main" && renderMainView()}
               {currentView === "history" && renderHistoryView()}
               {currentView === "statistics" && renderStatisticsView()}
+              {currentView === "received" && renderReceivedView()}
             </>
           )}
 
@@ -380,6 +474,37 @@ function Wallet({ logout }) {
           )}
         </Box>
       </Box>
+
+      <Dialog open={sendGoldDialog} onClose={() => setSendGoldDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Send Gold</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Recipient Wallet Address"
+            fullWidth
+            variant="outlined"
+            value={recipientAddress}
+            onChange={(e) => setRecipientAddress(e.target.value)}
+            placeholder="0x..."
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            label="Amount (GOLD)"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={sendAmount}
+            onChange={(e) => setSendAmount(e.target.value)}
+            inputProps={{ min: 0, step: 0.1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSendGoldDialog(false)}>Cancel</Button>
+          <Button onClick={handleSendGold} variant="contained">Send Gold</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

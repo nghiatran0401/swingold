@@ -378,24 +378,24 @@ export default function Admin({ user }) {
           )}
           {editType === "item" && editItem && (
             <Stack direction="column" spacing={1} mt={1}>
-              <TextField label="Name" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} size="small" required />
-              <TextField label="Description" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} size="small" multiline minRows={2} />
-              <TextField label="Image URL" value={newItem.image_url} onChange={(e) => setNewItem({ ...newItem, image_url: e.target.value })} size="small" />
+              <TextField label="Name" value={editItem.name || ""} onChange={(e) => setEditItem({ ...editItem, name: e.target.value })} size="small" required />
+              <TextField label="Description" value={editItem.description || ""} onChange={(e) => setEditItem({ ...editItem, description: e.target.value })} size="small" multiline minRows={2} />
+              <TextField label="Image URL" value={editItem.image_url || ""} onChange={(e) => setEditItem({ ...editItem, image_url: e.target.value })} size="small" />
               <TextField
                 label="Price (Gold)"
                 type="number"
-                value={newItem.price === undefined ? "" : newItem.price}
-                onChange={(e) => setNewItem({ ...newItem, price: e.target.value === "" ? 0.0 : parseFloat(e.target.value) })}
+                value={editItem.price === undefined ? "" : editItem.price}
+                onChange={(e) => setEditItem({ ...editItem, price: e.target.value === "" ? 0.0 : parseFloat(e.target.value) })}
                 size="small"
               />
-              <TextField label="Tags (comma-separated)" value={newItem.tags} onChange={(e) => setNewItem({ ...newItem, tags: e.target.value })} size="small" placeholder="tag1, tag2, tag3" />
-              <TextField label="Status" select value={newItem.status || "upcoming"} onChange={(e) => setNewItem({ ...newItem, status: e.target.value })} size="small" SelectProps={{ native: true }}>
+              <TextField label="Tags (comma-separated)" value={editItem.tags || ""} onChange={(e) => setEditItem({ ...editItem, tags: e.target.value })} size="small" placeholder="tag1, tag2, tag3" />
+              <TextField label="Status" select value={editItem.status || "upcoming"} onChange={(e) => setEditItem({ ...editItem, status: e.target.value })} size="small" SelectProps={{ native: true }}>
                 <option value="upcoming">Upcoming</option>
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </TextField>
-              <TextField label="Note" value={newItem.note} onChange={(e) => setNewItem({ ...newItem, note: e.target.value })} size="small" multiline minRows={2} placeholder="Internal notes or additional information" />
+              <TextField label="Note" value={editItem.note || ""} onChange={(e) => setEditItem({ ...editItem, note: e.target.value })} size="small" multiline minRows={2} placeholder="Internal notes or additional information" />
             </Stack>
           )}
         </DialogContent>

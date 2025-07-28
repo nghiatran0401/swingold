@@ -1,12 +1,13 @@
 from web3 import Web3
+from web3.providers import HTTPProvider
 import json
 import os
 from services.config import settings
 
-w3 = Web3(Web3.HTTPProvider(settings.BLOCKCHAIN_RPC_URL))
+w3 = Web3(HTTPProvider(settings.BLOCKCHAIN_RPC_URL))
 ACCOUNT = w3.eth.account.from_key(settings.PRIVATE_KEY)
-TRADE_MANAGER_ADDRESS = Web3.to_checksum_address(settings.TRADE_MANAGER_ADDRESS)
-SWINGOLD_ADDRESS = Web3.to_checksum_address(settings.SWINGOLD_ADDRESS)
+TRADE_MANAGER_ADDRESS = w3.to_checksum_address(settings.TRADE_MANAGER_ADDRESS)
+SWINGOLD_ADDRESS = w3.to_checksum_address(settings.SWINGOLD_ADDRESS)
 
 with open(os.path.join(settings.ABI_OUTPUT_DIR, "TradeManagerABI.json"), "r") as f:
     trade_abi = json.load(f)
@@ -20,7 +21,7 @@ token_contract = w3.eth.contract(address=SWINGOLD_ADDRESS, abi=token_abi)
 def create_trade(seller: str, item_name: str, price: int) -> str:
     nonce = w3.eth.get_transaction_count(ACCOUNT.address)
     txn = trade_contract.functions.createTrade(
-        Web3.to_checksum_address(seller),
+        w3.to_checksum_address(seller),
         item_name,
         price
     ).build_transaction({
@@ -46,4 +47,4 @@ def confirm_trade(trade_id: int) -> str:
     return tx_hash.hex()
 
 def get_balance(address: str) -> int:
-    return token_contract.functions.balanceOf(Web3.to_checksum_address(address)).call()
+    return token_contract.functions.balanceOf(w3.to_checksum_address(address)).call()

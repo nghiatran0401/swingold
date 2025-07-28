@@ -198,3 +198,32 @@ export const recordOnchainPurchase = async (purchaseData) => {
   }
   return res.json();
 };
+
+export const sendGold = async (transferData) => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const res = await fetch(`${API_BASE_URL}/transfers/send`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": user.id?.toString() || "1",
+    },
+    body: JSON.stringify(transferData),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to send gold");
+  }
+  return res.json();
+};
+
+export const getTransferHistory = async (userId) => {
+  const res = await fetch(`${API_BASE_URL}/transfers/history/${userId}`);
+  if (!res.ok) throw new Error("Failed to fetch transfer history");
+  return res.json();
+};
+
+export const getUserStatistics = async (userId) => {
+  const res = await fetch(`${API_BASE_URL}/statistics/user/${userId}`);
+  if (!res.ok) throw new Error("Failed to fetch user statistics");
+  return res.json();
+};
