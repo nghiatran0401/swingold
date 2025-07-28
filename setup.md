@@ -23,9 +23,10 @@ If Docker is unavailable or fails, you can run each part of the project manually
 
 1. Install Python 3.9+ and pip
 2. Navigate to the wapp directory: `cd backend/wapp`
-3. Install dependencies: `pip install -r requirements.txt`
-4. Set environment variables: the `.env` file is provided within this source code for easy development between teammates since this is just a school assignment, not the best practice / industry standard
-5. Run the API server: `uvicorn main:app --reload`
+3. Activate conda (optional): `conda activate swingold`
+4. Install dependencies: `pip install -r requirements.txt`
+5. Set environment variables: the `.env` file is provided within this source code for easy development between teammates since this is just a school assignment, not the best practice / industry standard
+6. Run the API server: `uvicorn main:app --reload`
 
 ### 3. Set up MySQL database:
 
@@ -36,9 +37,9 @@ If Docker is unavailable or fails, you can run each part of the project manually
    - username: `user`
    - password: `password`
 
-4. Run the SQL initialization script: `mysql -u user -p < swingold/backend/wapp/mysql/init/01-init.sql`
+4. Run the SQL initialization script: `mysql -u user -p swingold < backend/wapp/mysql/init/01-init.sql`
 
-##### Note: This script contains the schema and first batch of data. Read it to fully understand about the database
+##### Note: This script (01-init.sql) contains the schema and first batch of data. Read it to fully understand about the database
 
 ### 4. Frontend (React App)
 
