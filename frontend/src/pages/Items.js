@@ -27,8 +27,8 @@ import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
 import debounce from "lodash.debounce";
 import { ethers } from "ethers";
 import { formatGold } from "../goldUtils";
-import TradeManagerABI from "./shared-abis/TradeManagerABI.json";
-import SwingoldABI from "./shared-abis/SwingoldABI.json";
+import TradeManagerABI from "../shared-abis/TradeManagerABI.json";
+import SwingoldABI from "../shared-abis/SwingoldABI.json";
 
 function Items({ logout }) {
   const [searchInput, setSearchInput] = useState("");
