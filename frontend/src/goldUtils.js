@@ -7,7 +7,7 @@
  * @param {number} [maxDecimals=4] - Maximum decimal places to show.
  * @returns {string} - Formatted GOLD value.
  */
-export function formatGold(rawValue, minDecimals = 2, maxDecimals = 4) {
+export function formatGold (rawValue, minDecimals = 2, maxDecimals = 4) {
   const gold = Number(rawValue) / 1e18;
   return gold.toLocaleString(undefined, {
     minimumFractionDigits: minDecimals,
@@ -20,6 +20,6 @@ export function formatGold(rawValue, minDecimals = 2, maxDecimals = 4) {
  * @param {string|number} goldValue - The GOLD value (e.g., 1.5).
  * @returns {string} - Raw value as string (wei).
  */
-export function parseGold(goldValue) {
-  return (Number(goldValue) * 1e18).toLocaleString("fullwide", { useGrouping: false });
+export function parseGold (goldValue) {
+  return (Number(goldValue) * 1e18).toLocaleString('fullwide', { useGrouping: false });
 }

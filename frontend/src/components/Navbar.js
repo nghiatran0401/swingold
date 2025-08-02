@@ -1,20 +1,15 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem, useMediaQuery, useTheme } from "@mui/material";
-import { Menu as MenuIcon } from "@mui/icons-material";
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { AppBar, Toolbar, Button, Box, IconButton, Menu, MenuItem, useMediaQuery, useTheme } from '@mui/material';
+import { Menu as MenuIcon } from '@mui/icons-material';
+import { NAVIGATION_ITEMS, COLORS, Z_INDEX } from '../constants';
 
-function Navbar({ logout, user }) {
+function Navbar ({ logout, _user }) {
   const location = useLocation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileMenuAnchor, setMobileMenuAnchor] = React.useState(null);
 
-  const navigationItems = [
-    { path: "/events", label: "Events" },
-    { path: "/items", label: "Items" },
-    { path: "/wallet", label: "Wallet" },
-    { path: "/admin", label: "Admin" },
-  ];
 
   const isActive = (path) => location.pathname === path;
 
@@ -35,27 +30,27 @@ function Navbar({ logout, user }) {
     <AppBar
       position="fixed"
       sx={{
-        backgroundColor: "#FFFBFB",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
-        borderBottom: "1px solid #e0e0e0",
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        backgroundColor: COLORS.white,
+        boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+        borderBottom: `1px solid ${COLORS.gray[300]}`,
+        zIndex: Z_INDEX.NAVBAR,
       }}
     >
       <Toolbar
         sx={{
-          justifyContent: "space-between",
-          display: "flex",
-          alignItems: "center",
+          justifyContent: 'space-between',
+          display: 'flex',
+          alignItems: 'center',
         }}
       >
         {/* Logo */}
-        <Box component={Link} to="/events" sx={{ display: "flex", alignItems: "center" }}>
+        <Box component={Link} sx={{ display: 'flex', alignItems: 'center' }} to="/events">
           <img
-            src="/images/logo.png"
             alt="Swinburne Logo"
+            src="/images/logo.png"
             style={{
-              height: isMobile ? "40px" : "48px",
-              objectFit: "contain",
+              height: isMobile ? '40px' : '48px',
+              objectFit: 'contain',
             }}
           />
         </Box>
@@ -63,25 +58,25 @@ function Navbar({ logout, user }) {
         {/* Desktop Navigation */}
         {!isMobile ? (
           <>
-            <Box sx={{ display: "flex", justifyContent: "center", flex: 1, gap: 4 }}>
-              {navigationItems.map((item) => (
+            <Box sx={{ display: 'flex', justifyContent: 'center', flex: 1, gap: 4 }}>
+              {NAVIGATION_ITEMS.map((item) => (
                 <Button
-                  key={item.path}
                   component={Link}
-                  to={item.path}
+                  key={item.path}
                   sx={{
-                    color: isActive(item.path) ? "#ff001e" : "#2A2828",
-                    fontFamily: "Poppins",
+                    color: isActive(item.path) ? COLORS.primary : COLORS.secondary,
+                    fontFamily: 'Poppins',
                     fontWeight: 600,
-                    fontSize: "16px",
-                    textTransform: "none",
+                    fontSize: '16px',
+                    textTransform: 'none',
                     px: 1,
-                    borderBottom: isActive(item.path) ? "2px solid #ff001e" : "2px solid transparent",
-                    "&:hover": {
-                      backgroundColor: "rgba(255, 0, 30, 0.05)",
-                      borderBottom: "2px solid #ff001e",
+                    borderBottom: isActive(item.path) ? `2px solid ${COLORS.primary}` : '2px solid transparent',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 0, 30, 0.05)',
+                      borderBottom: `2px solid ${COLORS.primary}`,
                     },
                   }}
+                  to={item.path}
                 >
                   {item.label}
                 </Button>
@@ -91,14 +86,14 @@ function Navbar({ logout, user }) {
             <Button
               onClick={handleLogout}
               sx={{
-                color: "#2A2828",
-                fontFamily: "Poppins",
+                color: COLORS.secondary,
+                fontFamily: 'Poppins',
                 fontWeight: 600,
-                fontSize: "16px",
-                textTransform: "none",
-                "&:hover": {
-                  backgroundColor: "rgba(255, 0, 30, 0.1)",
-                  color: "#ff001e",
+                fontSize: '16px',
+                textTransform: 'none',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 0, 30, 0.1)',
+                  color: COLORS.primary,
                 },
               }}
             >
@@ -108,38 +103,38 @@ function Navbar({ logout, user }) {
         ) : (
           // Mobile Navigation
           <Box>
-            <IconButton onClick={handleMobileMenuOpen} sx={{ color: "#2A2828" }}>
+            <IconButton onClick={handleMobileMenuOpen} sx={{ color: '#2A2828' }}>
               <MenuIcon />
             </IconButton>
             <Menu
               anchorEl={mobileMenuAnchor}
-              open={Boolean(mobileMenuAnchor)}
               onClose={handleMobileMenuClose}
+              open={Boolean(mobileMenuAnchor)}
               sx={{
-                "& .MuiPaper-root": {
-                  backgroundColor: "#FFFBFB",
-                  width: "200px",
+                '& .MuiPaper-root': {
+                  backgroundColor: '#FFFBFB',
+                  width: '200px',
                   mt: 1,
-                  boxShadow: "0px 4px 12px rgba(0,0,0,0.1)",
+                  boxShadow: '0px 4px 12px rgba(0,0,0,0.1)',
                 },
               }}
             >
-              {navigationItems.map((item) => (
+              {NAVIGATION_ITEMS.map((item) => (
                 <MenuItem
-                  key={item.path}
                   component={Link}
-                  to={item.path}
+                  key={item.path}
                   onClick={handleMobileMenuClose}
                   sx={{
-                    color: isActive(item.path) ? "#ff001e" : "#2A2828",
-                    fontFamily: "Poppins",
+                    color: isActive(item.path) ? '#ff001e' : '#2A2828',
+                    fontFamily: 'Poppins',
                     fontWeight: isActive(item.path) ? 700 : 600,
-                    fontSize: "15px",
+                    fontSize: '15px',
                     py: 1.5,
-                    "&:hover": {
-                      backgroundColor: "rgba(255, 0, 30, 0.05)",
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 0, 30, 0.05)',
                     },
                   }}
+                  to={item.path}
                 >
                   {item.label}
                 </MenuItem>
@@ -147,15 +142,15 @@ function Navbar({ logout, user }) {
               <MenuItem
                 onClick={handleLogout}
                 sx={{
-                  color: "#2A2828",
-                  fontFamily: "Poppins",
-                  fontWeight: "600",
-                  fontSize: "15px",
+                  color: '#2A2828',
+                  fontFamily: 'Poppins',
+                  fontWeight: '600',
+                  fontSize: '15px',
                   py: 1.5,
-                  borderTop: "1px solid #e0e0e0",
-                  "&:hover": {
-                    backgroundColor: "rgba(255, 0, 30, 0.1)",
-                    color: "#ff001e",
+                  borderTop: '1px solid #e0e0e0',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 0, 30, 0.1)',
+                    color: '#ff001e',
                   },
                 }}
               >

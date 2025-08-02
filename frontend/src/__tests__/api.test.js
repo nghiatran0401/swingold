@@ -13,18 +13,18 @@ describe('API Functions', () => {
       const mockUser = { id: 1, username: 'testuser' };
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockUser
+        json: async () => mockUser,
       });
 
       const result = await api.loginUser('testuser', 'password');
-      
+
       expect(fetch).toHaveBeenCalledWith(
         `${process.env.REACT_APP_API_BASE_URL}/login`,
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'testuser', password: 'password' })
-        })
+          body: JSON.stringify({ username: 'testuser', password: 'password' }),
+        }),
       );
       expect(result).toEqual(mockUser);
       expect(localStorage.getItem('user')).toBe(JSON.stringify(mockUser));
@@ -33,7 +33,7 @@ describe('API Functions', () => {
     test('failed login', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ detail: 'Invalid credentials' })
+        json: async () => ({ detail: 'Invalid credentials' }),
       });
 
       await expect(api.loginUser('testuser', 'wrongpass')).rejects.toThrow('Invalid credentials');
@@ -45,18 +45,18 @@ describe('API Functions', () => {
       const mockEvents = [{ id: 1, name: 'Test Event' }];
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockEvents
+        json: async () => mockEvents,
       });
 
       const result = await api.fetchEvents();
-      
+
       expect(fetch).toHaveBeenCalledWith(`${process.env.REACT_APP_API_BASE_URL}/events`);
       expect(result).toEqual(mockEvents);
     });
 
     test('failed fetch', async () => {
       fetch.mockResolvedValueOnce({
-        ok: false
+        ok: false,
       });
 
       await expect(api.fetchEvents()).rejects.toThrow('Failed to fetch events');
@@ -68,11 +68,11 @@ describe('API Functions', () => {
       const mockItems = [{ id: 1, name: 'Test Item' }];
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockItems
+        json: async () => mockItems,
       });
 
       const result = await api.fetchItems();
-      
+
       expect(fetch).toHaveBeenCalledWith(`${process.env.REACT_APP_API_BASE_URL}/items`);
       expect(result).toEqual(mockItems);
     });
@@ -82,24 +82,24 @@ describe('API Functions', () => {
     test('successful creation', async () => {
       const mockEvent = { id: 1, name: 'New Event' };
       const eventData = { name: 'New Event', start_datetime: '2025-12-01T10:00:00' };
-      
+
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockEvent
+        json: async () => mockEvent,
       });
 
       const result = await api.createEvent(eventData, 1);
-      
+
       expect(fetch).toHaveBeenCalledWith(
         `${process.env.REACT_APP_API_BASE_URL}/events`,
         expect.objectContaining({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-User-Id': 1
+            'X-User-Id': 1,
           },
-          body: JSON.stringify(eventData)
-        })
+          body: JSON.stringify(eventData),
+        }),
       );
       expect(result).toEqual(mockEvent);
     });
@@ -109,13 +109,13 @@ describe('API Functions', () => {
     test('successful balance fetch', async () => {
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ balance: '1000000000000000000' })
+        json: async () => ({ balance: '1000000000000000000' }),
       });
 
       const result = await api.fetchUserBalance('0x1234');
-      
+
       expect(fetch).toHaveBeenCalledWith(
-        `${process.env.REACT_APP_API_BASE_URL}/transactions/onchain/balance/0x1234`
+        `${process.env.REACT_APP_API_BASE_URL}/transactions/onchain/balance/0x1234`,
       );
       expect(result).toBe('1000000000000000000');
     });
@@ -130,18 +130,18 @@ describe('API Functions', () => {
       const mockChallenge = { challenge: 'test challenge' };
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockChallenge
+        json: async () => mockChallenge,
       });
 
       const result = await api.requestWalletChallenge('0x1234');
-      
+
       expect(fetch).toHaveBeenCalledWith(
         `${process.env.REACT_APP_API_BASE_URL}/request-wallet-challenge`,
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: '0x1234' })
-        })
+          body: JSON.stringify({ address: '0x1234' }),
+        }),
       );
       expect(result).toEqual(mockChallenge);
     });
@@ -151,14 +151,14 @@ describe('API Functions', () => {
     test('successful wallet update', async () => {
       const mockUser = { id: 1, username: 'testuser', wallet_address: '0x1234' };
       localStorage.setItem('user', JSON.stringify({ id: 1 }));
-      
+
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockUser
+        json: async () => mockUser,
       });
 
       const result = await api.updateWalletAddress('0x1234');
-      
+
       expect(result).toEqual(mockUser);
       expect(localStorage.getItem('user')).toBe(JSON.stringify(mockUser));
     });
