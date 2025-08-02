@@ -10,7 +10,7 @@ export default function Login({ login, isAuthenticated }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) navigate("/events");
+    if (isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
 
   const handleLogin = async () => {
@@ -26,7 +26,7 @@ export default function Login({ login, isAuthenticated }) {
     setLoading(false);
 
     if (result.success) {
-      navigate("/events");
+      navigate("/");
     } else {
       setError(result.error);
     }

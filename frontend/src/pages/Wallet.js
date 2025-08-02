@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Typography, Button, Paper, Grid, Stack, Chip, Alert, Divider, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
+import { Box, Typography, Button, Paper, Grid, Stack, Chip, Alert, Divider, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Slide } from "@mui/material";
 import { History, Send, GetApp, AccountBalanceWallet, CheckCircle, Link as LinkIcon } from "@mui/icons-material";
 import { ethers } from "ethers";
 import Navbar from "../components/Navbar";
@@ -113,47 +113,157 @@ function Wallet({ logout }) {
       const transferData = {
         recipient_address: recipientAddress,
         amount: parseFloat(sendAmount),
-        tx_hash: `0x${Date.now().toString(16)}`
+        tx_hash: `0x${Date.now().toString(16)}`,
       };
-      
+
       await sendGold(transferData);
       setSendGoldDialog(false);
       setSendAmount("");
       setRecipientAddress("");
-      
+
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       const updatedTransactions = await fetchTransactions(user?.id);
       setTransactionHistory(updatedTransactions);
-      
+
       const updatedBalance = await fetchUserBalance(user?.wallet_address);
       setOnchainBalance(formatGold(updatedBalance));
-      
     } catch (err) {
       setError(err.message);
     }
   };
 
   const renderMainView = () => (
-    <Grid container spacing={4} alignItems="center" justifyContent="center">
-      <Grid item xs={12} md={5}>
-        <Box sx={{ ...cardBase, textAlign: "center", minHeight: "400px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", px: 2 }}>
-          <Box component="img" src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" alt="Gold Coin" sx={{ width: 120, height: 120, mb: 3 }} />
-          <Typography variant="h2" sx={{ fontFamily: "Poppins", fontWeight: 800, color: "#2A2828", mb: 1 }}>
-            {onchainBalance !== null ? `${onchainBalance} GOLD` : "-"}
-          </Typography>
-          <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#444" }}>
-            On-chain Balance
-          </Typography>
-        </Box>
-      </Grid>
-      <Grid item xs={12} md={7}>
-        <Stack spacing={3}>
-          <WalletButton label="View history" icon={<History />} onClick={() => setCurrentView("history")} />
-          <WalletButton label="Give Gold" icon={<Send />} onClick={() => setSendGoldDialog(true)} />
-          <WalletButton label="Received" icon={<GetApp />} onClick={() => setCurrentView("received")} />
+    <Box
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: { xs: 2, sm: 3 },
+        justifyContent: "center",
+        width: "100%",
+      }}
+    >
+      {/* Balance Card */}
+      <Box
+        sx={{
+          flex: "0 0 calc(50% - 16px)",
+          minWidth: { xs: "280px", sm: "300px" },
+          maxWidth: { xs: "100%", sm: "calc(50% - 16px)" },
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: "24px",
+            backgroundColor: "#ffffff",
+            border: "1px solid #f0f0f0",
+            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+            position: "relative",
+            overflow: "hidden",
+            background: "linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "4px",
+              background: "linear-gradient(90deg, #ff001e, #d4001a)",
+              opacity: 0,
+              transition: "opacity 0.3s ease",
+            },
+            "&:hover": {
+              transform: "translateY(-8px) scale(1.02)",
+              boxShadow: "0 20px 40px rgba(255, 0, 30, 0.1)",
+              borderColor: "#ff001e",
+              "&::before": {
+                opacity: 1,
+              },
+            },
+          }}
+        >
+          <Box
+            sx={{
+              p: 4,
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100%",
+            }}
+          >
+            <Box
+              sx={{
+                width: 120,
+                height: 120,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mb: 3,
+                boxShadow: "0 8px 32px rgba(255, 0, 30, 0.3)",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "3rem",
+                  color: "#ffffff",
+                  fontWeight: "900",
+                }}
+              >
+                💰
+              </Typography>
+            </Box>
+            <Typography
+              variant="h2"
+              sx={{
+                fontFamily: "Poppins",
+                fontWeight: "900",
+                color: "#2A2828",
+                mb: 2,
+                fontSize: { xs: "2rem", sm: "2.5rem" },
+              }}
+            >
+              {onchainBalance !== null ? `${onchainBalance} GOLD` : "-"}
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: "Poppins",
+                fontWeight: "600",
+                color: "#666",
+                fontSize: "1.1rem",
+              }}
+            >
+              On-chain Balance
+            </Typography>
+          </Box>
+        </Paper>
+      </Box>
+
+      {/* Action Buttons */}
+      <Box
+        sx={{
+          flex: "0 0 calc(50% - 16px)",
+          minWidth: { xs: "280px", sm: "300px" },
+          maxWidth: { xs: "100%", sm: "calc(50% - 16px)" },
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Stack spacing={3} sx={{ height: "100%" }}>
+          <WalletButton label="View History" icon={<History />} onClick={() => setCurrentView("history")} />
+          <WalletButton label="Send Gold" icon={<Send />} onClick={() => setSendGoldDialog(true)} />
+          <WalletButton label="Statistics" icon={<GetApp />} onClick={() => setCurrentView("statistics")} />
         </Stack>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 
   const renderStatisticsView = () => {
@@ -165,8 +275,8 @@ function Wallet({ logout }) {
       );
     }
 
-    const totalSpentPercentage = statistics.total_spent > 0 ? 
-      Math.round((statistics.spending_breakdown.events + statistics.spending_breakdown.items + statistics.spending_breakdown.transfers) / statistics.total_spent * 100) : 0;
+    const totalSpentPercentage =
+      statistics.total_spent > 0 ? Math.round(((statistics.spending_breakdown.events + statistics.spending_breakdown.items + statistics.spending_breakdown.transfers) / statistics.total_spent) * 100) : 0;
 
     return (
       <Grid container spacing={4} alignItems="center" justifyContent="center">
@@ -253,8 +363,8 @@ function Wallet({ logout }) {
   );
 
   const renderReceivedView = () => {
-    const receivedTransactions = transactionHistory.filter(tx => tx.direction === "credit");
-    
+    const receivedTransactions = transactionHistory.filter((tx) => tx.direction === "credit");
+
     return (
       <Grid container spacing={4} alignItems="center" justifyContent="center">
         <Paper elevation={3} sx={{ ...cardBase }}>
@@ -267,9 +377,7 @@ function Wallet({ logout }) {
                 No received transactions yet
               </Typography>
             ) : (
-              receivedTransactions.map((tx) => (
-                <TransactionCard key={tx.id} tx={tx} detailed />
-              ))
+              receivedTransactions.map((tx) => <TransactionCard key={tx.id} tx={tx} detailed />)
             )}
           </Stack>
         </Paper>
@@ -279,56 +387,160 @@ function Wallet({ logout }) {
 
   const TransactionCard = ({ tx, detailed }) => (
     <Paper
-      elevation={detailed ? 2 : 1}
-      sx={{ p: detailed ? 4 : 3, borderRadius: 3, backgroundColor: "#f8f9fa", border: "1px solid #e9ecef", transition: "all 0.3s ease", "&:hover": { boxShadow: detailed ? "0 4px 12px rgba(0,0,0,0.1)" : "none" } }}
+      elevation={0}
+      sx={{
+        borderRadius: "20px",
+        backgroundColor: "#ffffff",
+        border: "1px solid #f0f0f0",
+        transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+        position: "relative",
+        overflow: "hidden",
+        background: "linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)",
+        p: detailed ? 4 : 3,
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "4px",
+          background: tx.direction === "credit" ? "linear-gradient(90deg, #4caf50, #66bb6a)" : "linear-gradient(90deg, #ff001e, #d4001a)",
+          opacity: 0,
+          transition: "opacity 0.3s ease",
+        },
+        "&:hover": {
+          transform: "translateY(-4px) scale(1.02)",
+          boxShadow: "0 12px 32px rgba(0,0,0,0.1)",
+          borderColor: tx.direction === "credit" ? "#4caf50" : "#ff001e",
+          "&::before": {
+            opacity: 1,
+          },
+        },
+      }}
     >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Box>
-          <Typography variant={detailed ? "h5" : "h6"} sx={{ fontFamily: "Poppins", fontWeight: 600, color: tx.direction === "credit" ? "#4caf50" : "#ff001e", fontSize: detailed ? "24px" : "18px", mb: 1 }}>
+          <Typography
+            variant={detailed ? "h5" : "h6"}
+            sx={{
+              fontFamily: "Poppins",
+              fontWeight: "700",
+              color: tx.direction === "credit" ? "#4caf50" : "#ff001e",
+              fontSize: detailed ? "1.5rem" : "1.2rem",
+              mb: 1,
+            }}
+          >
             {tx.direction === "credit" ? "+" : "-"}
-            {tx.amount}
+            {tx.amount} GOLD
           </Typography>
-          <Typography variant={detailed ? "body1" : "body2"} sx={{ fontFamily: "Poppins", color: "#666", fontSize: detailed ? "14px" : "12px", lineHeight: 1.5 }}>
+          <Typography
+            variant={detailed ? "body1" : "body2"}
+            sx={{
+              fontFamily: "Poppins",
+              color: "#666",
+              fontSize: detailed ? "0.95rem" : "0.85rem",
+              lineHeight: 1.5,
+              mb: 1,
+            }}
+          >
             {tx.created_at ? new Date(tx.created_at).toLocaleString() : ""}
             <br />
             {tx.description}
           </Typography>
           {tx.tx_hash && (
-            <Typography variant="caption" sx={{ fontFamily: "monospace", color: "#888" }}>
-              Tx: {tx.tx_hash}
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: "monospace",
+                color: "#888",
+                fontSize: "0.75rem",
+                backgroundColor: "#f5f5f5",
+                padding: "2px 6px",
+                borderRadius: "4px",
+              }}
+            >
+              Tx: {tx.tx_hash.slice(0, 10)}...{tx.tx_hash.slice(-8)}
             </Typography>
           )}
-          {tx.status && <Chip label={tx.status} size="small" sx={{ ml: 1, backgroundColor: tx.status === "confirmed" ? "#4caf50" : tx.status === "failed" ? "#ff001e" : "#ffb300", color: "#fff" }} />}
+          {tx.status && (
+            <Chip
+              label={tx.status}
+              size="small"
+              sx={{
+                ml: 1,
+                backgroundColor: tx.status === "confirmed" ? "#4caf50" : tx.status === "failed" ? "#ff001e" : "#ffb300",
+                color: "#fff",
+                fontFamily: "Poppins",
+                fontWeight: "600",
+                fontSize: "0.75rem",
+              }}
+            />
+          )}
         </Box>
       </Box>
     </Paper>
   );
 
   const WalletButton = ({ label, icon, onClick }) => (
-    <Button
-      variant="contained"
-      fullWidth
-      onClick={onClick}
-      startIcon={icon}
+    <Paper
+      elevation={0}
       sx={{
-        py: 2.5,
-        fontSize: "16px",
-        fontWeight: 600,
-        fontFamily: "Poppins",
-        borderRadius: 3,
-        textTransform: "none",
-        backgroundColor: "#fff",
-        color: "#2A2828",
-        border: "1px solid #e0e0e0",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        borderRadius: "20px",
+        backgroundColor: "#ffffff",
+        border: "1px solid #f0f0f0",
+        transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+        position: "relative",
+        overflow: "hidden",
+        background: "linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)",
+        cursor: "pointer",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "4px",
+          background: "linear-gradient(90deg, #ff001e, #d4001a)",
+          opacity: 0,
+          transition: "opacity 0.3s ease",
+        },
         "&:hover": {
-          backgroundColor: "#f8f8f8",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          transform: "translateY(-4px) scale(1.02)",
+          boxShadow: "0 12px 32px rgba(255, 0, 30, 0.15)",
+          borderColor: "#ff001e",
+          "&::before": {
+            opacity: 1,
+          },
         },
       }}
     >
-      {label}
-    </Button>
+      <Button
+        variant="text"
+        fullWidth
+        onClick={onClick}
+        startIcon={icon}
+        sx={{
+          py: 3,
+          px: 4,
+          fontSize: "1.1rem",
+          fontWeight: 700,
+          fontFamily: "Poppins",
+          borderRadius: "20px",
+          textTransform: "none",
+          backgroundColor: "transparent",
+          color: "#2A2828",
+          "&:hover": {
+            backgroundColor: "transparent",
+          },
+          "& .MuiButton-startIcon": {
+            fontSize: "1.5rem",
+            color: "#ff001e",
+          },
+        }}
+      >
+        {label}
+      </Button>
+    </Paper>
   );
 
   return (
@@ -341,143 +553,291 @@ function Wallet({ logout }) {
         </Box>
       )}
 
-      {error && (
-        <Box sx={{ position: "fixed", top: 64, left: 0, width: "100%", zIndex: 2000, bgcolor: "#ffebee", textAlign: "center", py: 2 }}>
-          <Typography variant="body1" color="error">
-            Error: {error}
-          </Typography>
-        </Box>
-      )}
-
-      <Box sx={{ backgroundColor: "#f3f3f3", minHeight: "100vh", pt: 10, pb: 4 }}>
-        <Typography
-          variant="h4"
+      {/* Main Content */}
+      <Box
+        sx={{
+          backgroundColor: "#fafafa",
+          minHeight: "100vh",
+          position: "relative",
+        }}
+      >
+        {/* Hero Section */}
+        <Box
           sx={{
-            fontFamily: "Poppins",
-            fontWeight: "700",
-            color: "#2A2828",
-            mb: 3,
-            textAlign: "center",
+            background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+            height: "500px",
+            position: "relative",
+            overflow: "hidden",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background:
+                'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
+              opacity: 0.3,
+              animation: "float 6s ease-in-out infinite",
+              "@keyframes float": {
+                "0%, 100%": { transform: "translateY(0px)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+            },
           }}
         >
-          My Wallet
-        </Typography>
-        <Box sx={{ maxWidth: 1100, mx: "auto", p: 4, backgroundColor: "#fff", borderRadius: "16px" }}>
-          {/* Top-level wallet connection status */}
-          <Box sx={{ mb: 4, display: "flex", justifyContent: "center" }}>
-            {isWalletConnected ? (
-              <Chip
-                icon={<CheckCircle />}
-                label={`Connected: ${shortWallet}`}
-                color="success"
-                variant="filled"
-                sx={{
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  py: 2,
-                  px: 2,
-                  backgroundColor: "rgba(76, 175, 80, 0.9)",
-                  color: "white",
-                  "& .MuiChip-icon": { fontSize: "18px", color: "white" },
-                  "& .MuiChip-label": { px: 1 },
-                }}
-              />
-            ) : (
-              <Button
-                variant="contained"
-                size="large"
-                onClick={connectWallet}
-                disabled={isWalletLoading}
-                startIcon={isWalletLoading ? <CircularProgress size={20} sx={{ color: "white" }} /> : <AccountBalanceWallet />}
-                sx={{
-                  background: isWalletLoading ? "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)" : "linear-gradient(45deg, #FF6B6B 30%, #4ECDC4 90%)",
-                  border: 0,
-                  borderRadius: 3,
-                  boxShadow: isWalletLoading ? "0 2px 8px rgba(158, 158, 158, 0.3)" : "0 3px 15px rgba(255, 107, 107, 0.4)",
-                  color: "white",
-                  height: 56,
-                  padding: "0 30px",
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  textTransform: "none",
-                  transition: "all 0.3s ease-in-out",
-                  "&:hover": {
-                    background: isWalletLoading ? "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)" : "linear-gradient(45deg, #FF5252 30%, #26C6DA 90%)",
-                    boxShadow: isWalletLoading ? "0 2px 8px rgba(158, 158, 158, 0.3)" : "0 4px 20px rgba(255, 82, 82, 0.5)",
-                    transform: isWalletLoading ? "none" : "translateY(-2px)",
+          <Box
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              textAlign: "center",
+              width: "100%",
+              maxWidth: "800px",
+              px: 4,
+            }}
+          >
+            <Typography
+              variant="h1"
+              sx={{
+                fontFamily: "Poppins",
+                fontWeight: "900",
+                color: "#ffffff",
+                mb: 3,
+                fontSize: { xs: "3rem", md: "4.5rem" },
+                textShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                letterSpacing: "-0.02em",
+                animation: "fadeInUp 0.8s ease-out",
+                "@keyframes fadeInUp": {
+                  "0%": {
+                    opacity: 0,
+                    transform: "translateY(30px)",
                   },
-                  "&:disabled": {
-                    background: "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)",
-                    color: "rgba(255, 255, 255, 0.7)",
-                    cursor: "not-allowed",
+                  "100%": {
+                    opacity: 1,
+                    transform: "translateY(0)",
                   },
-                }}
-              >
-                <Typography variant="button" fontWeight="bold">
-                  {isWalletLoading ? "Connecting..." : "Connect Wallet"}
-                </Typography>
-              </Button>
-            )}
-          </Box>
+                },
+              }}
+            >
+              💰 My Wallet
+            </Typography>
 
-          {/* Only show wallet features if connected */}
-          {isWalletConnected && (
-            <>
-              <Box sx={{ mb: 4, display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
-                {[
-                  { label: "Wallet", view: "main" },
-                  { label: "Statistics", view: "statistics" },
-                ].map(({ label, view }) => (
-                  <Button
-                    key={view}
-                    onClick={() => setCurrentView(view)}
-                    variant={currentView === view ? "contained" : "outlined"}
+            <Typography
+              variant="h5"
+              sx={{
+                fontFamily: "Poppins",
+                fontWeight: "400",
+                color: "rgba(255,255,255,0.95)",
+                mb: 6,
+                fontSize: "1.3rem",
+                maxWidth: "600px",
+                mx: "auto",
+                lineHeight: 1.5,
+              }}
+            >
+              Manage your GOLD balance and track your transactions
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Floating Wallet Status Section */}
+        <Box
+          sx={{
+            position: "relative",
+            zIndex: 2,
+            mt: -8,
+            mb: 8,
+          }}
+        >
+          <Box
+            sx={{
+              maxWidth: "1200px",
+              mx: "auto",
+              px: 4,
+            }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                backgroundColor: "rgba(255,255,255,0.95)",
+                backdropFilter: "blur(20px)",
+                borderRadius: "24px",
+                p: 4,
+                boxShadow: "0 20px 60px rgba(0,0,0,0.1), 0 0 40px rgba(255, 0, 30, 0.1)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  boxShadow: "0 25px 80px rgba(0,0,0,0.15), 0 0 60px rgba(255, 0, 30, 0.15)",
+                },
+              }}
+            >
+              {/* Top-level wallet connection status */}
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                {isWalletConnected ? (
+                  <Chip
+                    icon={<CheckCircle />}
+                    label={`Connected: ${shortWallet}`}
+                    color="success"
+                    variant="filled"
                     sx={{
-                      fontFamily: "Poppins",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      py: 2,
+                      px: 2,
+                      backgroundColor: "rgba(76, 175, 80, 0.9)",
+                      color: "white",
+                      "& .MuiChip-icon": { fontSize: "18px", color: "white" },
+                      "& .MuiChip-label": { px: 1 },
+                    }}
+                  />
+                ) : (
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={connectWallet}
+                    disabled={isWalletLoading}
+                    startIcon={isWalletLoading ? <CircularProgress size={20} sx={{ color: "white" }} /> : <AccountBalanceWallet />}
+                    sx={{
+                      background: isWalletLoading ? "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)" : "linear-gradient(45deg, #ff001e 30%, #d4001a 90%)",
+                      border: 0,
+                      borderRadius: 3,
+                      boxShadow: isWalletLoading ? "0 2px 8px rgba(158, 158, 158, 0.3)" : "0 3px 15px rgba(255, 0, 30, 0.4)",
+                      color: "white",
+                      height: 56,
+                      padding: "0 30px",
+                      fontSize: "16px",
+                      fontWeight: "bold",
                       textTransform: "none",
-                      backgroundColor: currentView === view ? "#ff001e" : "transparent",
-                      borderColor: "#ff001e",
-                      color: currentView === view ? "#ffffff" : "#ff001e",
-                      minWidth: 120,
-                      fontWeight: 600,
-                      boxShadow: currentView === view ? "0 3px 6px rgba(0,0,0,0.2)" : "none",
+                      transition: "all 0.3s ease-in-out",
                       "&:hover": {
-                        backgroundColor: currentView === view ? "#d4001a" : "rgba(255, 0, 30, 0.08)",
+                        background: isWalletLoading ? "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)" : "linear-gradient(45deg, #d4001a 30%, #b30017 90%)",
+                        boxShadow: isWalletLoading ? "0 2px 8px rgba(158, 158, 158, 0.3)" : "0 4px 20px rgba(255, 0, 30, 0.5)",
+                        transform: isWalletLoading ? "none" : "translateY(-2px)",
+                      },
+                      "&:disabled": {
+                        background: "linear-gradient(45deg, #9E9E9E 30%, #757575 90%)",
+                        color: "rgba(255, 255, 255, 0.7)",
+                        cursor: "not-allowed",
                       },
                     }}
                   >
-                    {label}
+                    <Typography variant="button" fontWeight="bold">
+                      {isWalletLoading ? "Connecting..." : "Connect Wallet"}
+                    </Typography>
                   </Button>
-                ))}
+                )}
               </Box>
-              {currentView === "main" && renderMainView()}
-              {currentView === "history" && renderHistoryView()}
-              {currentView === "statistics" && renderStatisticsView()}
-              {currentView === "received" && renderReceivedView()}
-            </>
-          )}
-
-          {/* Wallet status messages */}
-          {walletStatus && (
-            <Alert
-              severity={walletStatus.includes("Error") ? "error" : walletStatus.includes("linked") ? "success" : "info"}
-              sx={{
-                mt: 3,
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                color: "#2A2828",
-                "& .MuiAlert-icon": { color: "#2A2828" },
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              <Typography variant="body2">{walletStatus}</Typography>
-            </Alert>
-          )}
+            </Paper>
+          </Box>
         </Box>
       </Box>
 
-      <Dialog open={sendGoldDialog} onClose={() => setSendGoldDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Send Gold</DialogTitle>
-        <DialogContent>
+      <Dialog
+        open={sendGoldDialog}
+        onClose={() => setSendGoldDialog(false)}
+        TransitionComponent={Slide}
+        keepMounted
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "40px",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 60px 160px rgba(0,0,0,0.25), 0 0 100px rgba(255, 0, 30, 0.2)",
+            border: "1px solid rgba(255,255,255,0.4)",
+            overflow: "hidden",
+            position: "relative",
+            maxHeight: "90vh",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,249,255,0.1) 100%)",
+              pointerEvents: "none",
+              zIndex: 0,
+            },
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+            color: "#ffffff",
+            fontFamily: "Poppins",
+            fontWeight: "900",
+            fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+            textAlign: "center",
+            py: { xs: 3, sm: 4, md: 5 },
+            px: { xs: 4, sm: 5, md: 6 },
+            position: "relative",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background:
+                'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
+              opacity: 0.4,
+            },
+            "&::after": {
+              content: '""',
+              position: "absolute",
+              bottom: 0,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "60px",
+              height: "4px",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.6), rgba(255,255,255,0.3))",
+              borderRadius: "2px",
+            },
+          }}
+        >
+          <Box display="flex" justifyContent="center" alignItems="center">
+            <Typography
+              sx={{
+                fontFamily: "Poppins",
+                fontWeight: "900",
+                fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+                textShadow: "0 4px 8px rgba(0,0,0,0.3)",
+                position: "relative",
+                zIndex: 1,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              💸 Send Gold
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <Box
+          sx={{
+            py: { xs: 4, sm: 5, md: 6 },
+            px: { xs: 3, sm: 4, md: 5 },
+            textAlign: "center",
+            maxHeight: "60vh",
+            overflow: "auto",
+            "&::-webkit-scrollbar": {
+              width: "8px",
+            },
+            "&::-webkit-scrollbar-track": {
+              background: "rgba(0,0,0,0.1)",
+              borderRadius: "4px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              background: "rgba(255, 0, 30, 0.3)",
+              borderRadius: "4px",
+              "&:hover": {
+                background: "rgba(255, 0, 30, 0.5)",
+              },
+            },
+          }}
+        >
           <TextField
             autoFocus
             margin="dense"
@@ -487,7 +847,24 @@ function Wallet({ logout }) {
             value={recipientAddress}
             onChange={(e) => setRecipientAddress(e.target.value)}
             placeholder="0x..."
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 3,
+              fontFamily: "Poppins",
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "16px",
+                fontFamily: "Poppins",
+                "& fieldset": {
+                  borderColor: "rgba(255,255,255,0.3)",
+                  borderWidth: "2px",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#ff001e",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#ff001e",
+                },
+              },
+            }}
           />
           <TextField
             margin="dense"
@@ -498,11 +875,77 @@ function Wallet({ logout }) {
             value={sendAmount}
             onChange={(e) => setSendAmount(e.target.value)}
             inputProps={{ min: 0, step: 0.1 }}
+            sx={{
+              mb: 3,
+              fontFamily: "Poppins",
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "16px",
+                fontFamily: "Poppins",
+                "& fieldset": {
+                  borderColor: "rgba(255,255,255,0.3)",
+                  borderWidth: "2px",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#ff001e",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#ff001e",
+                },
+              },
+            }}
           />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSendGoldDialog(false)}>Cancel</Button>
-          <Button onClick={handleSendGold} variant="contained">Send Gold</Button>
+        </Box>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            pb: { xs: 4, sm: 5, md: 6 },
+            pt: { xs: 2, sm: 3, md: 4 },
+            px: { xs: 3, sm: 4, md: 5 },
+            gap: { xs: 2, sm: 3 },
+          }}
+        >
+          <Button
+            onClick={() => setSendGoldDialog(false)}
+            sx={{
+              fontFamily: "Poppins",
+              textTransform: "none",
+              borderRadius: "12px",
+              px: { xs: 3, sm: 4 },
+              py: { xs: 1, sm: 1.2 },
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              border: "2px solid #e0e0e0",
+              color: "#666",
+              "&:hover": {
+                borderColor: "#ff001e",
+                color: "#ff001e",
+              },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSendGold}
+            variant="contained"
+            sx={{
+              background: "linear-gradient(45deg, #ff001e, #d4001a)",
+              borderRadius: "12px",
+              textTransform: "none",
+              fontFamily: "Poppins",
+              fontWeight: "600",
+              px: { xs: 3, sm: 4 },
+              py: { xs: 1, sm: 1.2 },
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                background: "linear-gradient(45deg, #d4001a, #b30017)",
+                transform: "translateY(-2px)",
+                boxShadow: "0 6px 20px rgba(255, 0, 30, 0.4)",
+              },
+            }}
+          >
+            Send Gold
+          </Button>
         </DialogActions>
       </Dialog>
     </>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { fetchItems, recordOnchainPurchase, fetchUserBalance } from "../api";
-import Navbar from "../components/Navbar";
+import { Navbar } from "../components";
 import {
   Grid,
   Paper,
@@ -23,8 +23,10 @@ import {
   FormControlLabel,
   Radio,
   Chip,
+  Slide,
 } from "@mui/material";
 import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import debounce from "lodash.debounce";
 import { ethers } from "ethers";
 import { formatGold } from "../goldUtils";
@@ -38,8 +40,6 @@ function Items({ logout }) {
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedSize, setSelectedSize] = useState("");
-  const [confirming, setConfirming] = useState(false);
-  const [purchased, setPurchased] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,10 +49,9 @@ function Items({ logout }) {
   const [onchainBalance, setOnchainBalance] = useState(null);
   const [rawBalance, setRawBalance] = useState(null);
   const [walletStatus, setWalletStatus] = useState("");
+  const [purchaseError, setPurchaseError] = useState("");
 
   // Fetch items on mount
-  // TODO: get balance on this component temporarily, should be globally
-  // come back to this later
   useEffect(() => {
     setLoading(true);
     const userObj = JSON.parse(localStorage.getItem("user") || "{}");
@@ -61,11 +60,6 @@ function Items({ logout }) {
 
     fetchItems()
       .then((data) => {
-        console.log("Fetched items:", data);
-        console.log(
-          "Items with descriptions:",
-          data.filter((item) => item.description)
-        );
         setItems(data);
       })
       .catch((err) => setError(err.message))
@@ -110,9 +104,7 @@ function Items({ logout }) {
     return () => handler.cancel();
   }, [searchInput, items, sortBy]);
 
-  const handleViewDetails = (itemId) => {
-    const item = filteredAndSortedItems.find((i) => i.id === itemId);
-    console.log("Selected item:", item);
+  const handlePurchaseClick = (item) => {
     setSelectedItem(item);
     setSelectedSize("");
     setDialogOpen(true);
@@ -122,6 +114,32 @@ function Items({ logout }) {
     setDialogOpen(false);
     setSelectedItem(null);
     setSelectedSize("");
+    setPurchaseError("");
+  };
+
+  const handleConfirmPurchase = async () => {
+    setPurchaseError("");
+
+    // Wallet checks
+    if (!window.ethereum) {
+      setPurchaseError("MetaMask not detected. Please install MetaMask!");
+      return;
+    }
+    if (!walletAddress) {
+      setPurchaseError("Please connect your wallet first.");
+      return;
+    }
+    if (!selectedItem) {
+      setPurchaseError("No item selected.");
+      return;
+    }
+    if (Number(rawBalance) < Number(selectedItem.price) * 1e18) {
+      setPurchaseError("Insufficient balance to purchase this item.");
+      return;
+    }
+
+    // If all checks pass, proceed with purchase
+    await handlePurchase();
   };
 
   // Wallet state
@@ -130,7 +148,6 @@ function Items({ logout }) {
   const [txHash, setTxHash] = useState("");
   const [isTxLoading, setIsTxLoading] = useState(false);
 
-  // TODO: 1st version of working, not best practice, will refactor later
   const handlePurchase = async () => {
     // MetaMask/Wallet Checks
     if (!window.ethereum) {
@@ -207,13 +224,21 @@ function Items({ logout }) {
         wallet_address: user?.wallet_address,
         quantity: 1,
       });
-      setPurchased(true);
 
       // 5. Update balance after purchase
       const newRaw = await fetchUserBalance(walletAddress);
       setRawBalance(newRaw);
       const formattedNew = formatGold(newRaw);
       setOnchainBalance(formattedNew);
+
+      // 6. Close dialog and show success
+      setTimeout(() => {
+        setDialogOpen(false);
+        setSelectedItem(null);
+        setSelectedSize("");
+        setTxStatus("");
+        setTxHash("");
+      }, 2000);
     } catch (err) {
       setTxStatus("Transaction failed: " + (err?.message || err?.toString() || "Unknown error"));
     } finally {
@@ -266,60 +291,167 @@ function Items({ logout }) {
         </Box>
       )}
 
-      {/* View all items button */}
-      <Box sx={{ backgroundColor: "#f5f5f5", minHeight: "100vh", pt: 10, pb: 4 }}>
-        <Box className="max-w-7xl mx-auto px-4">
-          <Typography
-            variant="h4"
-            sx={{
-              fontFamily: "Poppins",
-              fontWeight: "700",
-              color: "#2A2828",
-              mb: 3,
-              textAlign: "center",
-            }}
-          >
-            All Items
-          </Typography>
-
-          {/* Search and SortBy */}
+      {/* Main Content */}
+      <Box
+        sx={{
+          backgroundColor: "#fafafa",
+          minHeight: "100vh",
+          position: "relative",
+        }}
+      >
+        {/* Hero Section */}
+        <Box
+          sx={{
+            background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+            height: "500px",
+            position: "relative",
+            overflow: "hidden",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background:
+                'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
+              opacity: 0.3,
+              animation: "float 6s ease-in-out infinite",
+              "@keyframes float": {
+                "0%, 100%": { transform: "translateY(0px)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+            },
+          }}
+        >
           <Box
             sx={{
-              display: "flex",
-              justifyContent: "center",
-              px: { xs: 2, sm: 4, md: 14 },
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              textAlign: "center",
+              width: "100%",
+              maxWidth: "800px",
+              px: 4,
+            }}
+          >
+            <Typography
+              variant="h1"
+              sx={{
+                fontFamily: "Poppins",
+                fontWeight: "900",
+                color: "#ffffff",
+                mb: 3,
+                fontSize: { xs: "3rem", md: "4.5rem" },
+                textShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                letterSpacing: "-0.02em",
+                animation: "fadeInUp 0.8s ease-out",
+                "@keyframes fadeInUp": {
+                  "0%": {
+                    opacity: 0,
+                    transform: "translateY(30px)",
+                  },
+                  "100%": {
+                    opacity: 1,
+                    transform: "translateY(0)",
+                  },
+                },
+              }}
+            >
+              🛍️ All Items
+            </Typography>
+
+            <Typography
+              variant="h5"
+              sx={{
+                fontFamily: "Poppins",
+                fontWeight: "400",
+                color: "rgba(255,255,255,0.95)",
+                mb: 6,
+                fontSize: "1.3rem",
+                maxWidth: "600px",
+                mx: "auto",
+                lineHeight: 1.5,
+              }}
+            >
+              Discover amazing products at Swinburne
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Floating Search and Filter Section */}
+        <Box
+          sx={{
+            position: "relative",
+            zIndex: 2,
+            mt: -8,
+            mb: 8,
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              backgroundColor: "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(20px)",
+              borderRadius: "24px",
+              p: 4,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.1), 0 0 40px rgba(255, 0, 30, 0.1)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              maxWidth: "1200px",
+              mx: "auto",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                boxShadow: "0 25px 80px rgba(0,0,0,0.15), 0 0 60px rgba(255, 0, 30, 0.15)",
+              },
             }}
           >
             <Stack
               direction={{ xs: "column", sm: "row" }}
-              spacing={2}
+              spacing={3}
               sx={{
                 width: "100%",
-                maxWidth: 1200,
               }}
             >
               <TextField
                 fullWidth
-                placeholder="Find your items"
+                placeholder="Find your items..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 InputProps={{
                   startAdornment: <Search sx={{ color: "#666", mr: 1 }} />,
                 }}
                 sx={{
-                  backgroundColor: "#fff",
-                  borderRadius: 2,
+                  fontFamily: "Poppins",
                   "& .MuiOutlinedInput-root": {
+                    backgroundColor: "rgba(255,255,255,0.8)",
+                    borderRadius: "16px",
                     fontFamily: "Poppins",
-                    "& fieldset": { borderColor: "#ccc" },
-                    "&:hover fieldset": { borderColor: "#ff001e" },
-                    "&.Mui-focused fieldset": { borderColor: "#ff001e" },
+                    fontSize: "1.1rem",
+                    backdropFilter: "blur(10px)",
+                    "& fieldset": {
+                      borderColor: "rgba(255,255,255,0.3)",
+                      borderWidth: "2px",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
+                    },
+                    "& input": {
+                      color: "#2A2828",
+                      "&::placeholder": {
+                        color: "#666",
+                        opacity: 1,
+                      },
+                    },
                   },
                 }}
               />
 
-              {/*  Sort By button */}
-              <FormControl fullWidth sx={{ minWidth: { sm: 180 }, borderRadius: 2 }}>
+              {/* Sort By button */}
+              <FormControl sx={{ minWidth: { sm: 250 } }}>
                 <InputLabel sx={{ fontFamily: "Poppins" }}>Sort by</InputLabel>
                 <Select
                   value={sortBy}
@@ -328,11 +460,19 @@ function Items({ logout }) {
                   startAdornment={<FilterList sx={{ color: "#666", mr: 1 }} />}
                   sx={{
                     fontFamily: "Poppins",
-                    backgroundColor: "#fff",
-                    borderRadius: 2,
-                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "#ccc" },
-                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#ff001e" },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#ff001e" },
+                    backgroundColor: "rgba(255,255,255,0.8)",
+                    borderRadius: "16px",
+                    backdropFilter: "blur(10px)",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255,255,255,0.3)",
+                      borderWidth: "2px",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#ff001e",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#ff001e",
+                    },
                   }}
                 >
                   <MenuItem value="price-low">Price: High to Low</MenuItem>
@@ -340,372 +480,591 @@ function Items({ logout }) {
                 </Select>
               </FormControl>
             </Stack>
-          </Box>
+          </Paper>
+        </Box>
 
-          {/* Wallet section */}
-          {renderWalletSection()}
+        {/* Wallet section */}
+        {/* <Box sx={{ mb: 6 }}>{renderWalletSection()}</Box> */}
 
-          {/* Items Grid */}
-          <Box sx={{ mx: "auto", py: 4 }}>
-            <Grid container spacing={2} justifyContent="center">
-              {filteredAndSortedItems.map((item) => (
-                <Grid item xs={6} sm={6} md={4} lg={3} key={item.id}>
-                  <Paper
-                    elevation={3}
-                    onClick={() => handleViewDetails(item.id)}
+        {/* Items Grid */}
+        <Box
+          sx={{
+            maxWidth: "1200px",
+            mx: "auto",
+            px: 4,
+            pb: 8,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: { xs: 2, sm: 3 },
+              justifyContent: { xs: "center", md: "flex-start" },
+              width: "100%",
+            }}
+          >
+            {filteredAndSortedItems.map((item) => (
+              <Box
+                key={item.id}
+                sx={{
+                  flex: "0 0 calc(33.333% - 16px)",
+                  minWidth: { xs: "280px", sm: "300px" },
+                  maxWidth: { xs: "100%", sm: "calc(50% - 12px)", md: "calc(33.333% - 16px)" },
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <Paper
+                  elevation={0}
+                  sx={{
+                    height: { xs: 400, sm: 440, md: 480 },
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    alignItems: "stretch",
+                    borderRadius: "24px",
+                    overflow: "hidden",
+                    position: "relative",
+                    background: "linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)",
+                    border: "1px solid #f0f0f0",
+                    transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                    cursor: "pointer",
+                    width: "100%",
+                    "&::before": {
+                      content: '""',
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "4px",
+                      background: "linear-gradient(90deg, #ff001e, #d4001a)",
+                      opacity: 0,
+                      transition: "opacity 0.3s ease",
+                    },
+                    "&:hover": {
+                      transform: "translateY(-8px) scale(1.02)",
+                      boxShadow: "0 20px 40px rgba(255, 0, 30, 0.1)",
+                      borderColor: "#ff001e",
+                      "&::before": {
+                        opacity: 1,
+                      },
+                    },
+                  }}
+                >
+                  {/* Image */}
+                  <Box
                     sx={{
-                      height: { xs: 380, sm: 420, md: 460 },
-                      width: { xs: 200, sm: 240, md: 280 },
+                      height: "55%",
+                      backgroundColor: "#fafafa",
                       display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      alignItems: "stretch",
-                      borderRadius: 4,
-                      overflow: "hidden",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderBottom: "1px solid #eee",
+                      px: 2,
                       position: "relative",
-                      transition: "transform 0.25s ease, box-shadow 0.25s ease",
-                      cursor: "pointer",
-                      "&:hover": {
-                        transform: "translateY(-6px)",
-                        boxShadow: "0 12px 30px rgba(0,0,0,0.1)",
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "linear-gradient(45deg, rgba(255, 0, 30, 0.1), rgba(212, 0, 26, 0.1))",
+                        zIndex: 1,
                       },
                     }}
                   >
-                    {/* Image */}
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "16px 16px 0 0",
+                      }}
+                    />
+                    {/* Price Badge */}
                     <Box
                       sx={{
-                        height: "50%",
-                        backgroundColor: "#fafafa",
+                        position: "absolute",
+                        top: 16,
+                        right: 16,
+                        zIndex: 2,
+                      }}
+                    >
+                      <Chip
+                        label={`${item.price} GOLD`}
+                        sx={{
+                          background: "linear-gradient(45deg, #ff001e, #d4001a)",
+                          color: "#ffffff",
+                          fontFamily: "Poppins",
+                          fontWeight: "700",
+                          fontSize: "0.9rem",
+                          boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
+                        }}
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Info */}
+                  <Box
+                    sx={{
+                      p: 3,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      height: "45%",
+                      flex: 1,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: "700",
+                        color: "#2A2828",
+                        fontFamily: "Poppins",
+                        textAlign: "center",
+                        mb: 2,
+                        fontSize: "1.2rem",
+                        lineHeight: 1.3,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {item.name}
+                    </Typography>
+                    {/* Description */}
+                    {item.description && (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "#666",
+                          fontFamily: "Poppins",
+                          textAlign: "center",
+                          fontSize: "0.9rem",
+                          mb: 2,
+                          lineHeight: 1.5,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          flex: 1,
+                        }}
+                      >
+                        {item.description}
+                      </Typography>
+                    )}
+                    {/* View Detail button */}
+                    <Button
+                      variant="contained"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePurchaseClick(item);
+                      }}
+                      sx={{
+                        alignSelf: "center",
+                        px: 4,
+                        py: 1.5,
+                        background: "linear-gradient(45deg, #ff001e, #d4001a)",
+                        textTransform: "none",
+                        fontFamily: "Poppins",
+                        fontWeight: "600",
+                        fontSize: "1rem",
+                        borderRadius: "16px",
+                        boxShadow: "0 6px 20px rgba(255, 0, 30, 0.3)",
+                        transition: "all 0.3s ease",
+                        mt: "auto",
+                        "&:hover": {
+                          background: "linear-gradient(45deg, #d4001a, #b30017)",
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 8px 25px rgba(255, 0, 30, 0.4)",
+                        },
+                      }}
+                    >
+                      💳 Purchase Now
+                    </Button>
+                  </Box>
+                </Paper>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        {/* No Items */}
+        {filteredAndSortedItems.length === 0 && (
+          <Box sx={{ textAlign: "center", mt: 6 }}>
+            <Typography variant="h6" sx={{ color: "#666", fontFamily: "Poppins", mb: 1 }}>
+              No items found
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#999", fontFamily: "Poppins" }}>
+              Try adjusting your search terms or filters
+            </Typography>
+          </Box>
+        )}
+
+        <Dialog
+          open={dialogOpen}
+          onClose={handleCloseDialog}
+          TransitionComponent={Slide}
+          keepMounted
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: "40px",
+              backgroundColor: "#ffffff",
+              boxShadow: "0 60px 160px rgba(0,0,0,0.25), 0 0 100px rgba(255, 0, 30, 0.2)",
+              border: "1px solid rgba(255,255,255,0.4)",
+              overflow: "hidden",
+              position: "relative",
+              maxHeight: "90vh",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,249,255,0.1) 100%)",
+                pointerEvents: "none",
+                zIndex: 0,
+              },
+            },
+          }}
+        >
+          {/* Display the chosen item, with detailed description */}
+          {selectedItem && (
+            <>
+              <DialogTitle
+                sx={{
+                  background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+                  color: "#ffffff",
+                  fontFamily: "Poppins",
+                  fontWeight: "900",
+                  fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+                  textAlign: "center",
+                  py: { xs: 3, sm: 4, md: 5 },
+                  px: { xs: 4, sm: 5, md: 6 },
+                  position: "relative",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background:
+                      'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
+                    opacity: 0.4,
+                  },
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    bottom: 0,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "60px",
+                    height: "4px",
+                    background: "linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.6), rgba(255,255,255,0.3))",
+                    borderRadius: "2px",
+                  },
+                }}
+              >
+                <Box display="flex" justifyContent="center" alignItems="center">
+                  <Typography
+                    sx={{
+                      fontFamily: "Poppins",
+                      fontWeight: "900",
+                      fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+                      textShadow: "0 4px 8px rgba(0,0,0,0.3)",
+                      position: "relative",
+                      zIndex: 1,
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    🛍️ Confirm Purchase
+                  </Typography>
+                </Box>
+              </DialogTitle>
+
+              <Box
+                sx={{
+                  py: { xs: 4, sm: 5, md: 6 },
+                  px: { xs: 3, sm: 4, md: 5 },
+                  textAlign: "center",
+                  maxHeight: "60vh",
+                  overflow: "auto",
+                  "&::-webkit-scrollbar": {
+                    width: "8px",
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    background: "rgba(0,0,0,0.1)",
+                    borderRadius: "4px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    background: "rgba(255, 0, 30, 0.3)",
+                    borderRadius: "4px",
+                    "&:hover": {
+                      background: "rgba(255, 0, 30, 0.5)",
+                    },
+                  },
+                }}
+              >
+                {/* Item Information Card */}
+                {selectedItem && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      backgroundColor: "#f8f9ff",
+                      borderRadius: "16px",
+                      p: 3,
+                      mb: 4,
+                      border: "1px solid #e3e8ff",
+                      background: "linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%)",
+                    }}
+                  >
+                    {/* Item Image */}
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: "200px",
+                        borderRadius: "12px",
+                        overflow: "hidden",
+                        mb: 3,
+                        position: "relative",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        borderBottom: "1px solid #eee",
-                        px: 2,
+                        backgroundColor: "#f8f9fa",
                       }}
                     >
                       <img
-                        src={item.image_url}
-                        alt={item.name}
+                        src={selectedItem.image_url}
+                        alt={selectedItem.name}
                         style={{
                           maxWidth: "100%",
                           maxHeight: "100%",
                           objectFit: "contain",
+                          borderRadius: "12px",
                         }}
                       />
+                      {/* Price Badge */}
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                        }}
+                      >
+                        <Chip
+                          label={`${selectedItem.price} GOLD`}
+                          sx={{
+                            background: "linear-gradient(45deg, #ff001e, #d4001a)",
+                            color: "#ffffff",
+                            fontFamily: "Poppins",
+                            fontWeight: "700",
+                            fontSize: "0.8rem",
+                            boxShadow: "0 2px 8px rgba(255, 0, 30, 0.3)",
+                          }}
+                        />
+                      </Box>
                     </Box>
 
-                    {/* Info */}
-                    <Box
+                    {/* Item Details */}
+                    <Typography
+                      variant="h6"
                       sx={{
-                        p: 2,
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "space-between",
-                        height: "50%",
+                        fontFamily: "Poppins",
+                        fontWeight: "700",
+                        color: "#2A2828",
+                        mb: 2,
+                        fontSize: { xs: "1.1rem", sm: "1.2rem" },
                       }}
                     >
+                      {selectedItem.name}
+                    </Typography>
+
+                    {selectedItem.description && (
                       <Typography
-                        variant="subtitle1"
+                        variant="body2"
                         sx={{
-                          fontWeight: 600,
-                          color: "#222",
                           fontFamily: "Poppins",
-                          textAlign: "center",
-                          mb: 0.5,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          color: "#666",
+                          mb: 3,
+                          fontSize: "0.9rem",
+                          lineHeight: 1.5,
                         }}
                       >
-                        {item.name}
+                        {selectedItem.description}
                       </Typography>
-                      {/*  Price of item */}
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: 700,
-                          color: "#ff001e",
-                          fontFamily: "Poppins",
-                          textAlign: "center",
-                          fontSize: "1rem",
-                          mb: 1,
-                        }}
-                      >
-                        {item.price} GOLD
-                      </Typography>
-                      {/* Description */}
-                      {item.description && (
+                    )}
+
+                    {/* Item Info Grid */}
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 2,
+                        textAlign: "left",
+                      }}
+                    >
+                      <Box>
                         <Typography
                           variant="body2"
                           sx={{
-                            color: "#666",
                             fontFamily: "Poppins",
-                            textAlign: "center",
+                            color: "#666",
                             fontSize: "0.8rem",
-                            mb: 1,
-                            lineHeight: 1.4,
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
+                            fontWeight: "600",
+                            mb: 0.5,
                           }}
                         >
-                          {item.description}
+                          💰 Price
                         </Typography>
-                      )}
-                      {/* View Detail button */}
-                      <Button
-                        variant="contained"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewDetails(item.id);
-                        }}
-                        sx={{
-                          alignSelf: "center",
-                          px: 3,
-                          backgroundColor: "#ff001e",
-                          textTransform: "none",
-                          fontFamily: "Poppins",
-                          fontWeight: 500,
-                          fontSize: "0.9rem",
-                          borderRadius: "999px",
-                          "&:hover": {
-                            backgroundColor: "#d4001a",
-                          },
-                        }}
-                      >
-                        View Details
-                      </Button>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: "Poppins",
+                            color: "#2A2828",
+                            fontSize: "0.9rem",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {selectedItem.price} GOLD
+                        </Typography>
+                      </Box>
+
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: "Poppins",
+                            color: "#666",
+                            fontSize: "0.8rem",
+                            fontWeight: "600",
+                            mb: 0.5,
+                          }}
+                        >
+                          📦 Quantity
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: "Poppins",
+                            color: "#2A2828",
+                            fontSize: "0.9rem",
+                            fontWeight: "500",
+                          }}
+                        >
+                          1 item
+                        </Typography>
+                      </Box>
                     </Box>
                   </Paper>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
+                )}
 
-          {/* No Items */}
-          {filteredAndSortedItems.length === 0 && (
-            <Box sx={{ textAlign: "center", mt: 6 }}>
-              <Typography variant="h6" sx={{ color: "#666", fontFamily: "Poppins", mb: 1 }}>
-                No items found
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#999", fontFamily: "Poppins" }}>
-                Try adjusting your search terms or filters
-              </Typography>
-            </Box>
-          )}
-        </Box>
-
-        <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 4, backgroundColor: "#f5f5f5" } }}>
-          {/* Display the chosen item, with detailed description */}
-          {selectedItem && (
-            <>
-              <DialogTitle>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography fontWeight={600}>{selectedItem.name}</Typography>
+                {/* Confirmation Message */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 2,
+                    mb: 2,
+                  }}
+                >
+                  <CheckCircleIcon sx={{ color: "#4caf50", fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" } }} />
+                  <Typography
+                    sx={{
+                      color: "#2A2828",
+                      fontFamily: "Poppins",
+                      lineHeight: 1.8,
+                      fontSize: { xs: "1rem", sm: "1.1rem", md: "1.15rem" },
+                      fontWeight: "600",
+                    }}
+                  >
+                    Are you sure you want to purchase this item?
+                  </Typography>
                 </Box>
-              </DialogTitle>
 
-              <DialogContent>
-                <Grid
-                  container
-                  spacing={3}
-                  wrap="nowrap"
-                  sx={{
-                    flexDirection: { xs: "row", sm: "row" },
-                    overflowX: "auto",
-                  }}
-                >
-                  <Grid item xs={6}>
-                    <Box
-                      sx={{
-                        width: "100%",
-                        aspectRatio: "1 / 1",
-                        maxHeight: 300,
-                        backgroundColor: "#e0e0e0",
-                        borderRadius: 2,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <img src={selectedItem.image_url} alt={selectedItem.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                    </Box>
-                  </Grid>
+                {/* Error Display */}
+                {purchaseError && (
+                  <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
+                    {purchaseError}
+                  </Alert>
+                )}
 
-                  <Grid item xs={6}>
-                    <Stack spacing={2}>
-                      <Typography variant="h6" fontWeight={700}>
-                        {selectedItem.price} GOLD
-                      </Typography>
-
-                      {selectedItem.description && (
-                        <Typography variant="body1" sx={{ color: "#555", fontFamily: "Poppins", lineHeight: 1.6 }}>
-                          {selectedItem.description}
-                        </Typography>
-                      )}
-
-                      {/* Item size selection */}
-                      {selectedItem.tags &&
-                        (() => {
-                          try {
-                            // Try to parse as JSON first (for size arrays)
-                            const sizes = JSON.parse(selectedItem.tags);
-                            if (Array.isArray(sizes) && sizes.length > 0) {
-                              return (
-                                <Box sx={{ mb: 3 }}>
-                                  <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2 }}>
-                                    Select Size:
-                                  </Typography>
-                                  <FormControl component="fieldset">
-                                    <RadioGroup value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)} row>
-                                      {sizes.map((size) => (
-                                        <FormControlLabel
-                                          key={size}
-                                          value={size}
-                                          control={<Radio />}
-                                          label={size}
-                                          sx={{
-                                            "& .MuiFormControlLabel-label": {
-                                              fontFamily: "Poppins",
-                                              fontWeight: 500,
-                                            },
-                                          }}
-                                        />
-                                      ))}
-                                    </RadioGroup>
-                                  </FormControl>
-                                </Box>
-                              );
-                            }
-                          } catch (e) {
-                            // If JSON parsing fails, treat as regular tags (comma-separated)
-                            const tags = selectedItem.tags
-                              .split(",")
-                              .map((tag) => tag.trim())
-                              .filter((tag) => tag);
-                            if (tags.length > 0) {
-                              return (
-                                <Box sx={{ mb: 3 }}>
-                                  <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2 }}>
-                                    Tags:
-                                  </Typography>
-                                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                                    {tags.map((tag) => (
-                                      <Chip
-                                        key={tag}
-                                        label={tag}
-                                        size="small"
-                                        sx={{
-                                          backgroundColor: "#f0f0f0",
-                                          color: "#666",
-                                          fontFamily: "Poppins",
-                                        }}
-                                      />
-                                    ))}
-                                  </Box>
-                                </Box>
-                              );
-                            }
-                          }
-                          return null;
-                        })()}
-                    </Stack>
-                  </Grid>
-                </Grid>
-              </DialogContent>
-
-              {/* Purchase button */}
-              <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
-                <Button onClick={handleCloseDialog} color="inherit">
-                  Close
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={() => setConfirming(true)}
-                  disabled={(() => {
-                    if (!selectedItem.tags) return false;
-                    try {
-                      const sizes = JSON.parse(selectedItem.tags);
-                      return Array.isArray(sizes) && sizes.length > 0 && !selectedSize;
-                    } catch (e) {
-                      return false; // If not JSON, don't require size selection
-                    }
-                  })()}
-                  sx={{
-                    backgroundColor: "#ff001e",
-                    borderRadius: "999px",
-                    textTransform: "none",
-                    fontWeight: 600,
-                    px: 4,
-                    py: 1.2,
-                    fontSize: "1rem",
-                    "&:hover": {
-                      backgroundColor: "#d4001a",
-                    },
-                    "&:disabled": { backgroundColor: "#ccc" },
-                  }}
-                >
-                  Purchase
-                </Button>
-              </DialogActions>
-            </>
-          )}
-        </Dialog>
-
-        {/* If purchased -> show transaction details */}
-        <Dialog open={confirming} onClose={() => setConfirming(false)}>
-          {!purchased ? (
-            <>
-              <DialogTitle>Transaction Details</DialogTitle>
-              <DialogContent>
-                <DialogContentText>
-                  <div style={{ whiteSpace: "pre-line" }}>
-                    Product: {selectedItem?.name}
-                    {"\n"}
-                    Amount: 1{"\n"}
-                    Total: {selectedItem?.price} GOLD{"\n\n"}
-                    {walletAddress ? `Wallet: ${walletAddress}` : "Wallet not connected"}
-                  </div>
-                </DialogContentText>
+                {/* Transaction Status */}
                 {txStatus && (
-                  <Alert severity={txStatus.startsWith("Transaction failed") ? "error" : "info"} sx={{ mt: 2 }}>
+                  <Alert severity={txStatus.startsWith("Transaction failed") ? "error" : "info"} sx={{ mt: 2, mb: 2 }}>
                     {txStatus}
                   </Alert>
                 )}
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setConfirming(false)}>Cancel</Button>
+              </Box>
+
+              <DialogActions
+                sx={{
+                  justifyContent: "center",
+                  pb: { xs: 4, sm: 5, md: 6 },
+                  pt: { xs: 2, sm: 3, md: 4 },
+                  px: { xs: 3, sm: 4, md: 5 },
+                  gap: { xs: 2, sm: 3 },
+                }}
+              >
                 <Button
-                  onClick={handlePurchase}
-                  autoFocus
-                  variant="contained"
-                  disabled={isTxLoading}
+                  onClick={handleCloseDialog}
                   sx={{
-                    backgroundColor: "#ff001e",
+                    fontFamily: "Poppins",
                     textTransform: "none",
-                    "&:hover": { backgroundColor: "#d4001a" },
+                    borderRadius: "12px",
+                    px: { xs: 3, sm: 4 },
+                    py: { xs: 1, sm: 1.2 },
+                    fontSize: { xs: "0.9rem", sm: "1rem" },
+                    border: "2px solid #e0e0e0",
+                    color: "#666",
+                    "&:hover": {
+                      borderColor: "#ff001e",
+                      color: "#ff001e",
+                    },
                   }}
                 >
-                  {isTxLoading ? "Processing..." : "Confirm & Pay"}
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleConfirmPurchase}
+                  disabled={isTxLoading}
+                  sx={{
+                    background: "linear-gradient(45deg, #ff001e, #d4001a)",
+                    borderRadius: "12px",
+                    textTransform: "none",
+                    fontFamily: "Poppins",
+                    fontWeight: "600",
+                    px: { xs: 3, sm: 4 },
+                    py: { xs: 1, sm: 1.2 },
+                    fontSize: { xs: "0.9rem", sm: "1rem" },
+                    boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
+                    transition: "all 0.3s ease",
+                    "&:hover": {
+                      background: "linear-gradient(45deg, #d4001a, #b30017)",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 6px 20px rgba(255, 0, 30, 0.4)",
+                    },
+                    "&:disabled": {
+                      background: "#ccc",
+                      transform: "none",
+                      boxShadow: "none",
+                    },
+                  }}
+                >
+                  {isTxLoading ? "Processing..." : "Yes, Purchase"}
                 </Button>
               </DialogActions>
             </>
-          ) : (
-            <DialogContent sx={{ textAlign: "center", py: 6 }}>
-              <Typography variant="h6" fontWeight={600} mb={2}>
-                🎉 Purchase Successful!
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Thank you for your purchase.
-                <br />
-                {txHash && (
-                  <>
-                    <br />
-                    Transaction Hash: <span style={{ fontFamily: "monospace" }}>{txHash}</span>
-                  </>
-                )}
-              </Typography>
-            </DialogContent>
           )}
         </Dialog>
       </Box>
