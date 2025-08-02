@@ -109,6 +109,7 @@ export default function Login({ login, isAuthenticated }) {
                 margin="normal"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleLogin()}
                 sx={{
                   mb: 2,
                   "& .MuiOutlinedInput-root": {

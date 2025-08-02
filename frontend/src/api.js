@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/v1";
 
 // Get user from database and save to localStorage
 export const loginUser = async (username, password) => {
@@ -70,14 +70,14 @@ export const fetchAvailableMonths = async () => {
 
 // Fetch all items
 export const fetchItems = async () => {
-  const res = await fetch(`${API_BASE_URL}/items`);
+  const res = await fetch(`${API_BASE_URL}/items/`);
   if (!res.ok) throw new Error("Failed to fetch items");
   return res.json();
 };
 
 // Create a new item
 export const createItem = async (item, userId) => {
-  const res = await fetch(`${API_BASE_URL}/items`, {
+  const res = await fetch(`${API_BASE_URL}/items/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

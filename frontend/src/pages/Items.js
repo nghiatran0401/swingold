@@ -22,6 +22,7 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
+  Chip,
 } from "@mui/material";
 import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
 import debounce from "lodash.debounce";
@@ -59,7 +60,14 @@ function Items({ logout }) {
     setWalletAddress(userObj?.wallet_address || "");
 
     fetchItems()
-      .then((data) => setItems(data))
+      .then((data) => {
+        console.log("Fetched items:", data);
+        console.log(
+          "Items with descriptions:",
+          data.filter((item) => item.description)
+        );
+        setItems(data);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
 
@@ -104,6 +112,7 @@ function Items({ logout }) {
 
   const handleViewDetails = (itemId) => {
     const item = filteredAndSortedItems.find((i) => i.id === itemId);
+    console.log("Selected item:", item);
     setSelectedItem(item);
     setSelectedSize("");
     setDialogOpen(true);
@@ -345,7 +354,7 @@ function Items({ logout }) {
                     elevation={3}
                     onClick={() => handleViewDetails(item.id)}
                     sx={{
-                      height: { xs: 320, sm: 360, md: 400 },
+                      height: { xs: 380, sm: 420, md: 460 },
                       width: { xs: 200, sm: 240, md: 280 },
                       display: "flex",
                       flexDirection: "column",
@@ -424,6 +433,27 @@ function Items({ logout }) {
                       >
                         {item.price} GOLD
                       </Typography>
+                      {/* Description */}
+                      {item.description && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#666",
+                            fontFamily: "Poppins",
+                            textAlign: "center",
+                            fontSize: "0.8rem",
+                            mb: 1,
+                            lineHeight: 1.4,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {item.description}
+                        </Typography>
+                      )}
                       {/* View Detail button */}
                       <Button
                         variant="contained"
@@ -505,15 +535,20 @@ function Items({ logout }) {
                   <Grid item xs={6}>
                     <Stack spacing={2}>
                       <Typography variant="h6" fontWeight={700}>
-                        {selectedItem.price}$
+                        {selectedItem.price} GOLD
                       </Typography>
 
-                      <DialogContentText sx={{ color: "#555" }}>{selectedItem.description || "Product Description. swinburne t shirt, 3 sizes....."}</DialogContentText>
+                      {selectedItem.description && (
+                        <Typography variant="body1" sx={{ color: "#555", fontFamily: "Poppins", lineHeight: 1.6 }}>
+                          {selectedItem.description}
+                        </Typography>
+                      )}
 
                       {/* Item size selection */}
                       {selectedItem.tags &&
                         (() => {
                           try {
+                            // Try to parse as JSON first (for size arrays)
                             const sizes = JSON.parse(selectedItem.tags);
                             if (Array.isArray(sizes) && sizes.length > 0) {
                               return (
@@ -543,7 +578,34 @@ function Items({ logout }) {
                               );
                             }
                           } catch (e) {
-                            return null;
+                            // If JSON parsing fails, treat as regular tags (comma-separated)
+                            const tags = selectedItem.tags
+                              .split(",")
+                              .map((tag) => tag.trim())
+                              .filter((tag) => tag);
+                            if (tags.length > 0) {
+                              return (
+                                <Box sx={{ mb: 3 }}>
+                                  <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2 }}>
+                                    Tags:
+                                  </Typography>
+                                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                                    {tags.map((tag) => (
+                                      <Chip
+                                        key={tag}
+                                        label={tag}
+                                        size="small"
+                                        sx={{
+                                          backgroundColor: "#f0f0f0",
+                                          color: "#666",
+                                          fontFamily: "Poppins",
+                                        }}
+                                      />
+                                    ))}
+                                  </Box>
+                                </Box>
+                              );
+                            }
                           }
                           return null;
                         })()}
@@ -560,7 +622,15 @@ function Items({ logout }) {
                 <Button
                   variant="contained"
                   onClick={() => setConfirming(true)}
-                  disabled={selectedItem.tags && JSON.parse(selectedItem.tags || "[]").length > 0 && !selectedSize}
+                  disabled={(() => {
+                    if (!selectedItem.tags) return false;
+                    try {
+                      const sizes = JSON.parse(selectedItem.tags);
+                      return Array.isArray(sizes) && sizes.length > 0 && !selectedSize;
+                    } catch (e) {
+                      return false; // If not JSON, don't require size selection
+                    }
+                  })()}
                   sx={{
                     backgroundColor: "#ff001e",
                     borderRadius: "999px",
@@ -593,7 +663,7 @@ function Items({ logout }) {
                     Product: {selectedItem?.name}
                     {"\n"}
                     Amount: 1{"\n"}
-                    Total: {selectedItem?.price}${"\n\n"}
+                    Total: {selectedItem?.price} GOLD{"\n\n"}
                     {walletAddress ? `Wallet: ${walletAddress}` : "Wallet not connected"}
                   </div>
                 </DialogContentText>

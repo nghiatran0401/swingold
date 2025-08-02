@@ -30,7 +30,6 @@ export default function Admin({ user }) {
     image_url: "",
     price: 0.0,
     tags: "",
-    status: "upcoming",
     note: "",
   });
 
@@ -107,7 +106,6 @@ export default function Admin({ user }) {
         image_url: "",
         price: 0.0,
         tags: "",
-        status: "upcoming",
         note: "",
       });
       setCreateDialogOpen(false);
@@ -293,12 +291,6 @@ export default function Admin({ user }) {
                   size="small"
                 />
                 <TextField label="Tags (comma-separated)" value={newItem.tags} onChange={(e) => setNewItem({ ...newItem, tags: e.target.value })} size="small" placeholder="tag1, tag2, tag3" />
-                <TextField label="Status" select value={newItem.status || "upcoming"} onChange={(e) => setNewItem({ ...newItem, status: e.target.value })} size="small" SelectProps={{ native: true }}>
-                  <option value="upcoming">Upcoming</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </TextField>
                 <TextField label="Note" value={newItem.note} onChange={(e) => setNewItem({ ...newItem, note: e.target.value })} size="small" multiline minRows={2} placeholder="Internal notes or additional information" />
               </Stack>
             )
@@ -389,13 +381,15 @@ export default function Admin({ user }) {
                 size="small"
               />
               <TextField label="Tags (comma-separated)" value={editItem.tags || ""} onChange={(e) => setEditItem({ ...editItem, tags: e.target.value })} size="small" placeholder="tag1, tag2, tag3" />
-              <TextField label="Status" select value={editItem.status || "upcoming"} onChange={(e) => setEditItem({ ...editItem, status: e.target.value })} size="small" SelectProps={{ native: true }}>
-                <option value="upcoming">Upcoming</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </TextField>
-              <TextField label="Note" value={editItem.note || ""} onChange={(e) => setEditItem({ ...editItem, note: e.target.value })} size="small" multiline minRows={2} placeholder="Internal notes or additional information" />
+              <TextField
+                label="Note"
+                value={editItem.note || ""}
+                onChange={(e) => setEditItem({ ...editItem, note: e.target.value })}
+                size="small"
+                multiline
+                minRows={2}
+                placeholder="Internal notes or additional information"
+              />
             </Stack>
           )}
         </DialogContent>

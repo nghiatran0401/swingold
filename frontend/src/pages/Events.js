@@ -1,11 +1,9 @@
 import React, { useState, useMemo, useEffect } from "react";
-import debounce from "lodash.debounce";
 import Navbar from "../components/Navbar";
 import { fetchEvents, fetchAvailableMonths, toggleEventEnrollment } from "../api";
 import { Grid, Paper, Box, Button, Typography, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Slide, TextField } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import Search from "@mui/icons-material/Search";
-import { formatGold } from "../goldUtils";
 
 // Helper function to convert YYYY-MM to month name
 const convertToMonthName = (yearMonth) => {
@@ -41,7 +39,10 @@ function Events({ logout }) {
   // Fetch available months and events on mount
   useEffect(() => {
     setLoading(true);
-    fetchEvents().then((e) => setEvents(e));
+    fetchEvents().then((e) => {
+      console.log("Fetched events:", e);
+      setEvents(e);
+    });
     fetchAvailableMonths().then((m) => {
       const monthNames = m.map(convertToMonthName);
       setMonths(["All", ...monthNames]);
@@ -49,13 +50,14 @@ function Events({ logout }) {
     setLoading(false);
   }, []);
 
-  // Filter events by selected month
+  // Combined filtering for both search and month selection
   useEffect(() => {
-    if (selectedMonth === "All") {
-      setFilteredEvents(events);
-    } else {
+    let filtered = events;
+
+    // Apply month filter first
+    if (selectedMonth !== "All") {
       const selectedMonthValue = getMonthValue(selectedMonth);
-      const monthFiltered = events.filter((event) => {
+      filtered = filtered.filter((event) => {
         if (event.start_datetime && selectedMonthValue) {
           const eventDate = new Date(event.start_datetime);
           const eventMonth = String(eventDate.getMonth() + 1).padStart(2, "0");
@@ -63,21 +65,16 @@ function Events({ logout }) {
         }
         return false;
       });
-      setFilteredEvents(monthFiltered);
     }
-  }, [selectedMonth, events]);
 
-  // Search events with Lodash debounce
-  useEffect(() => {
-    const handler = debounce((searchValue) => {
-      const searchFiltered = events.filter(
-        (event) => (event.name && event.name.toLowerCase().includes(searchValue.toLowerCase())) || (event.description && event.description.toLowerCase().includes(searchValue.toLowerCase()))
-      );
-      setFilteredEvents(searchFiltered);
-    }, 300);
-    handler(searchInput);
-    return () => handler.cancel();
-  }, [searchInput, events]);
+    // Apply search filter
+    if (searchInput.trim()) {
+      filtered = filtered.filter((event) => (event.name && event.name.toLowerCase().includes(searchInput.toLowerCase())) || (event.description && event.description.toLowerCase().includes(searchInput.toLowerCase())));
+    }
+
+    console.log("Filtered events:", filtered);
+    setFilteredEvents(filtered);
+  }, [selectedMonth, searchInput, events]);
 
   const handleEnrollClick = (eventId) => {
     setPendingEventId(eventId);
@@ -251,7 +248,7 @@ function Events({ logout }) {
                               fontSize: "14px",
                             }}
                           >
-                            Date: {event.date}
+                            Date: {event.start_datetime ? new Date(event.start_datetime).toLocaleDateString() : "TBD"}
                           </Typography>
 
                           {event.description && (
@@ -312,7 +309,7 @@ function Events({ logout }) {
 
                         <Box sx={{ ml: 3, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                           <Chip
-                            label={event.price === 0 ? "Free" : `${formatGold(event.price)} GOLD`}
+                            label={event.price === 0 ? "Free" : `${event.price.toFixed(2)} GOLD`}
                             clickable={false}
                             onClick={() => {}}
                             sx={{
@@ -325,14 +322,14 @@ function Events({ logout }) {
                             }}
                           />
 
-                          {event.end_date && (
+                          {event.end_datetime && (
                             <Typography variant="body2" sx={{ fontFamily: "Poppins", color: "#666", fontSize: "12px", mb: 1 }}>
-                              Ends: {event.end_date.split("T")[0]}
+                              Ends: {new Date(event.end_datetime).toLocaleDateString()}
                             </Typography>
                           )}
-                          {event.seats && (
+                          {event.seats_available && (
                             <Typography variant="body2" sx={{ fontFamily: "Poppins", color: "#666", fontSize: "12px", mb: 1 }}>
-                              Seats: {event.seats}
+                              Seats: {event.seats_available}
                             </Typography>
                           )}
                           {event.tags && (
@@ -354,7 +351,7 @@ function Events({ logout }) {
                             >
                               Ended
                             </Button>
-                          ) : enrolledEvents[event.id] || event.enroll ? (
+                          ) : enrolledEvents[event.id] ? (
                             <Button
                               variant="contained"
                               startIcon={<CheckCircleIcon />}
