@@ -1,7 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { fetchItems, recordOnchainPurchase, fetchUserBalance } from "../api";
 import Navbar from "../components/Navbar";
-import { Grid, Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Alert, RadioGroup, FormControlLabel, Radio } from "@mui/material";
+import {
+  Grid,
+  Paper,
+  Box,
+  Button,
+  Typography,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Stack,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Alert,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+} from "@mui/material";
 import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
 import debounce from "lodash.debounce";
 import { ethers } from "ethers";
@@ -446,13 +467,7 @@ function Items({ logout }) {
           )}
         </Box>
 
-        <Dialog
-          open={dialogOpen}
-          onClose={handleCloseDialog}
-          fullWidth
-          maxWidth="md"
-          PaperProps={{ sx: { borderRadius: 4, backgroundColor: "#f5f5f5" } }}
-        >
+        <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 4, backgroundColor: "#f5f5f5" } }}>
           {/* Display the chosen item, with detailed description */}
           {selectedItem && (
             <>
@@ -496,45 +511,42 @@ function Items({ logout }) {
                       <DialogContentText sx={{ color: "#555" }}>{selectedItem.description || "Product Description. swinburne t shirt, 3 sizes....."}</DialogContentText>
 
                       {/* Item size selection */}
-                      {selectedItem.tags && (() => {
-                        try {
-                          const sizes = JSON.parse(selectedItem.tags);
-                          if (Array.isArray(sizes) && sizes.length > 0) {
-                            return (
-                              <Box sx={{ mb: 3 }}>
-                                <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2 }}>
-                                  Select Size:
-                                </Typography>
-                                <FormControl component="fieldset">
-                                  <RadioGroup
-                                    value={selectedSize}
-                                    onChange={(e) => setSelectedSize(e.target.value)}
-                                    row
-                                  >
-                                    {sizes.map((size) => (
-                                      <FormControlLabel
-                                        key={size}
-                                        value={size}
-                                        control={<Radio />}
-                                        label={size}
-                                        sx={{
-                                          "& .MuiFormControlLabel-label": {
-                                            fontFamily: "Poppins",
-                                            fontWeight: 500
-                                          }
-                                        }}
-                                      />
-                                    ))}
-                                  </RadioGroup>
-                                </FormControl>
-                              </Box>
-                            );
+                      {selectedItem.tags &&
+                        (() => {
+                          try {
+                            const sizes = JSON.parse(selectedItem.tags);
+                            if (Array.isArray(sizes) && sizes.length > 0) {
+                              return (
+                                <Box sx={{ mb: 3 }}>
+                                  <Typography variant="h6" sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2 }}>
+                                    Select Size:
+                                  </Typography>
+                                  <FormControl component="fieldset">
+                                    <RadioGroup value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)} row>
+                                      {sizes.map((size) => (
+                                        <FormControlLabel
+                                          key={size}
+                                          value={size}
+                                          control={<Radio />}
+                                          label={size}
+                                          sx={{
+                                            "& .MuiFormControlLabel-label": {
+                                              fontFamily: "Poppins",
+                                              fontWeight: 500,
+                                            },
+                                          }}
+                                        />
+                                      ))}
+                                    </RadioGroup>
+                                  </FormControl>
+                                </Box>
+                              );
+                            }
+                          } catch (e) {
+                            return null;
                           }
-                        } catch (e) {
                           return null;
-                        }
-                        return null;
-                      })()}
+                        })()}
                     </Stack>
                   </Grid>
                 </Grid>
