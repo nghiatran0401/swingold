@@ -12,7 +12,7 @@ def test_send_gold(client, sample_user, admin_user):
                           headers={"X-User-Id": str(sample_user.id)})
     assert response.status_code == 200
     data = response.json()
-    assert "Gold transfer successful" in data["message"]
+    assert data["message"] == "Gold transfer successful"
     assert data["amount"] == 50.0
 
 def test_send_gold_to_self(client, sample_user):

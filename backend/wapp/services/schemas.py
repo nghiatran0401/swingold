@@ -1,7 +1,7 @@
 # https://docs.pydantic.dev/1.10/usage/schema/
 # This schema is mainly use for data validation and response
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 from services.models import StatusEnum, DirectionEnum, ItemEventStatusEnum
@@ -26,17 +26,17 @@ class EventCreate(EventBase):
 
 
 class EventUpdate(BaseModel):
-    name: Optional[str]
-    description: Optional[str]
-    category: Optional[str]
-    start_datetime: Optional[datetime]
-    end_datetime: Optional[datetime]
-    price: Optional[float]
-    location: Optional[str]
-    seats_available: Optional[int]
-    image_url: Optional[str]
-    tags: Optional[str]
-    status: Optional[ItemEventStatusEnum]
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    start_datetime: Optional[datetime] = None
+    end_datetime: Optional[datetime] = None
+    price: Optional[float] = None
+    location: Optional[str] = None
+    seats_available: Optional[int] = None
+    image_url: Optional[str] = None
+    tags: Optional[str] = None
+    status: Optional[ItemEventStatusEnum] = None
 
 
 class EventOut(EventBase):
@@ -44,8 +44,7 @@ class EventOut(EventBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ItemBase(BaseModel):
@@ -63,13 +62,13 @@ class ItemCreate(ItemBase):
 
 
 class ItemUpdate(BaseModel):
-    name: Optional[str]
-    description: Optional[str]
-    image_url: Optional[str]
-    price: Optional[float]
-    tags: Optional[str]
-    status: Optional[ItemEventStatusEnum]
-    note: Optional[str]
+    name: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    price: Optional[float] = None
+    tags: Optional[str] = None
+    status: Optional[ItemEventStatusEnum] = None
+    note: Optional[str] = None
 
 
 class ItemOut(ItemBase):
@@ -77,8 +76,7 @@ class ItemOut(ItemBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TransactionBase(BaseModel):
@@ -106,8 +104,7 @@ class TransactionOut(BaseModel):
     item_id: Optional[int]
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OnchainPurchaseCreate(BaseModel):

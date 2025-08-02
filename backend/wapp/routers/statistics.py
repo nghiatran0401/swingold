@@ -4,7 +4,9 @@ from services.database import get_db
 from services import models
 from sqlalchemy import func
 
-router = APIRouter(prefix="/api/v1/statistics", tags=["statistics"])
+""" Provides API endpoints for retrieving user spending and earning statistics. """
+
+router = APIRouter(prefix="/statistics", tags=["statistics"])
 
 @router.get("/user/{user_id}")
 def get_user_statistics(user_id: int, db: Session = Depends(get_db)):

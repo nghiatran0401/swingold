@@ -17,8 +17,14 @@ router = APIRouter(
 def read_events(db: Session = Depends(get_db)):
     return db.query(models.Event).all()
 
+@router.get("/{event_id}", response_model=schemas.EventOut)
+def read_event(event_id: int, db: Session = Depends(get_db)):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event
 
-@router.post("", response_model=schemas.EventOut)
+@router.post("", response_model=schemas.EventOut, status_code=201)
 def create_event(
     event: schemas.EventCreate,
     db: Session = Depends(get_db),
@@ -29,7 +35,7 @@ def create_event(
         raise HTTPException(status_code=403, detail="Admin access required")
 
     try:
-        db_event = models.Event(**event.dict())
+        db_event = models.Event(**event.model_dump())
         db.add(db_event)
         db.commit()
         db.refresh(db_event)
@@ -40,8 +46,6 @@ def create_event(
             status_code=500,
             detail=f"Failed to create event: {str(e)}"
         )
-
-
 
 @router.put("/{event_id}", response_model=schemas.EventOut)
 def update_event(
@@ -59,7 +63,7 @@ def update_event(
         raise HTTPException(status_code=404, detail="Event not found")
 
     try:
-        update_data = event_update.dict(exclude_unset=True)
+        update_data = event_update.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_event, key, value)
         db.commit()
@@ -104,8 +108,6 @@ def toggle_event_enrollment(event_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found")
     
     return {"message": "Enrollment toggled successfully", "event_id": event_id}
-
-
 
 @router.get("/months/list", response_model=list[str])
 def get_available_months(db: Session = Depends(get_db)):

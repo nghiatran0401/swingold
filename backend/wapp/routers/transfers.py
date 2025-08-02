@@ -3,8 +3,11 @@ from sqlalchemy.orm import Session
 from services.database import get_db
 from services import models, schemas
 from typing import Optional
+from datetime import datetime
 
-router = APIRouter(prefix="/api/v1/transfers", tags=["transfers"])
+""" Provides API endpoints for sending gold between users and retrieving transfer history. """
+
+router = APIRouter(prefix="/transfers", tags=["transfers"])
 
 @router.post("/send")
 def send_gold(
@@ -27,32 +30,45 @@ def send_gold(
     if sender.id == recipient.id:
         raise HTTPException(status_code=400, detail="Cannot send gold to yourself")
     
-    sender_transaction = models.Transaction(
-        amount=transfer_data.amount,
-        direction=models.DirectionEnum.debit,
-        tx_hash=transfer_data.tx_hash,
-        description=f"Sent gold to {recipient.username}",
-        status=models.StatusEnum.confirmed,
-        user_id=sender.id
-    )
-    
-    recipient_transaction = models.Transaction(
-        amount=transfer_data.amount,
-        direction=models.DirectionEnum.credit,
-        tx_hash=transfer_data.tx_hash,
-        description=f"Received gold from {sender.username}",
-        status=models.StatusEnum.confirmed,
-        user_id=recipient.id
-    )
-    
-    db.add(sender_transaction)
-    db.add(recipient_transaction)
-    db.commit()
-    
-    return {"message": "Gold transfer successful", "amount": transfer_data.amount}
+    try:
+        # Use different tx_hash for sender and recipient to avoid unique constraint violation
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        sender_tx_hash = f"{transfer_data.tx_hash}_send_{timestamp}"
+        recipient_tx_hash = f"{transfer_data.tx_hash}_recv_{timestamp}"
+        
+        sender_transaction = models.Transaction(
+            amount=transfer_data.amount,
+            direction=models.DirectionEnum.debit,
+            tx_hash=sender_tx_hash,
+            description=f"Sent gold to {recipient.username}",
+            status=models.StatusEnum.confirmed,
+            user_id=sender.id
+        )
+        
+        recipient_transaction = models.Transaction(
+            amount=transfer_data.amount,
+            direction=models.DirectionEnum.credit,
+            tx_hash=recipient_tx_hash,
+            description=f"Received gold from {sender.username}",
+            status=models.StatusEnum.confirmed,
+            user_id=recipient.id
+        )
+        
+        db.add(sender_transaction)
+        db.add(recipient_transaction)
+        db.commit()
+        
+        return {"message": "Gold transfer successful", "amount": transfer_data.amount}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Transfer failed: {str(e)}")
 
 @router.get("/history/{user_id}")
 def get_transfer_history(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
     transactions = db.query(models.Transaction).filter(
         models.Transaction.user_id == user_id,
         models.Transaction.description.like("%gold%")

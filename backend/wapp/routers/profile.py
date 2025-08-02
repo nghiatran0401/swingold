@@ -1,7 +1,7 @@
 # https://stackoverflow.com/questions/66736079/verify-metamask-signature-ethereum-using-python
 # https://eth-account.readthedocs.io/en/stable/
 
-# “Sign-In With Ethereum” (SIWE) or “Web3 login”.
+# "Sign-In With Ethereum" (SIWE) or "Web3 login".
 
 # This challenge-response signature flow is the industry standard for authenticating users with their Ethereum wallet in decentralized applications (dApps)
 # - Proof of Wallet Ownership
@@ -14,7 +14,7 @@
 # - Challenge-Response Authentication
 # - EIP-4361: Sign-In With Ethereum
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 from services.database import get_db
 import services.models as models
@@ -22,19 +22,33 @@ import secrets
 import time
 from eth_account.messages import encode_defunct
 from eth_account import Account
+from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter()
 
 # In-memory storage for challenges (in production, use Redis or database)
 wallet_challenges = {}
 
+class WalletChallengeRequest(BaseModel):
+    address: Optional[str] = None
+
+class WalletSignatureRequest(BaseModel):
+    address: str
+    signature: str
+
+class WalletAddressUpdateRequest(BaseModel):
+    wallet_address: str
+
 """
 Generate a challenge message for wallet signature verification
 """
 @router.post("/request-wallet-challenge")
-def request_wallet_challenge(request: dict):
+async def request_wallet_challenge(request: Request):
     try:
-        address = request.get('address')
+        body = await request.json()
+        address = body.get('address') if body else None
+        
         if not address:
             raise HTTPException(status_code=400, detail="Wallet address is required")
             
@@ -48,17 +62,18 @@ def request_wallet_challenge(request: dict):
         }
         
         return {"challenge": challenge}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate challenge: {str(e)}")
-
 
 """
 Verify the wallet signature against the challenge
 """
 @router.post("/verify-wallet-signature")
-def verify_wallet_signature(request: dict):
+def verify_wallet_signature(request: WalletSignatureRequest):
     try:
-        address_lower = request.get('address').lower()
+        address_lower = request.address.lower()
         
         # Check if challenge exists
         if address_lower not in wallet_challenges:
@@ -68,7 +83,7 @@ def verify_wallet_signature(request: dict):
         challenge = challenge_data["challenge"]
         
         # Verify signature
-        signature = request.get('signature')
+        signature = request.signature
         if not signature:
             raise HTTPException(status_code=400, detail="Signature is required")
             
@@ -84,22 +99,23 @@ def verify_wallet_signature(request: dict):
         
         return {"verified": True, "address": recovered_address}
     
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Signature verification failed: {str(e)}")
-
 
 """
 Update user's wallet address after successful verification
 """
 @router.patch("/update-wallet-address")
-def update_wallet_address(request: dict, db: Session = Depends(get_db), x_user_id: str = Header(None, alias="X-User-Id")):
+def update_wallet_address(request: WalletAddressUpdateRequest, db: Session = Depends(get_db), x_user_id: str = Header(None, alias="X-User-Id")):
     try:
         # Validate user ID
         if not x_user_id:
             raise HTTPException(status_code=400, detail="User ID is required")
             
         user_id = int(x_user_id)
-        wallet_address = request.get('wallet_address')
+        wallet_address = request.wallet_address
         
         if not wallet_address:
             raise HTTPException(status_code=400, detail="Wallet address is required")
@@ -125,6 +141,8 @@ def update_wallet_address(request: dict, db: Session = Depends(get_db), x_user_i
         
         return {"id": current_user.id, "username": current_user.username, "is_admin": current_user.is_admin, "wallet_address": current_user.wallet_address}
     
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update wallet address: {str(e)}")

@@ -1,16 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from services.database import get_db 
 import services.models as models
 from services.schemas import TransactionCreate, TransactionOut
+from pydantic import BaseModel
 
 router = APIRouter(
     prefix="/transactions",
     tags=["transactions"],
     responses={404: {"description": "Not found"}},
 )
+
+class PurchaseTransactionRequest(BaseModel):
+    amount: float
+    direction: str
+    tx_hash: str
+    description: str
+    user_id: int
+    item_id: Optional[int] = None
+
+class EarnTransactionRequest(BaseModel):
+    amount: float
+    direction: str
+    tx_hash: str
+    description: str
+    user_id: int
+    event_id: Optional[int] = None
 
 # 1. Read all transactions list
 @router.get("/", response_model=List[TransactionOut])
@@ -48,18 +65,14 @@ def create_purchase_transaction(
 ):
     """Create a purchase transaction (debit)"""
     try:
-        now = datetime.now()
         transaction_data = {
             "amount": amount,
             "direction": models.DirectionEnum.debit,
             "description": description,
-            "date": now.strftime("%Y-%m-%d"),
-            "time": now.strftime("%H:%M:%S"),
             "user_id": user_id,
             "item_id": item_id,
-            "quantity": quantity,
-            "tx_hash": tx_hash,
-            "status": status_,
+            "tx_hash": tx_hash or f"0x{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            "status": models.StatusEnum(status_) if status_ else models.StatusEnum.pending,
         }
         db_transaction = models.Transaction(**transaction_data)
         db.add(db_transaction)
@@ -86,17 +99,74 @@ def create_earn_transaction(
 ):
     """Create an earning transaction (credit)"""
     try:
-        now = datetime.now()
         transaction_data = {
             "amount": amount,
             "direction": models.DirectionEnum.credit,
             "description": description,
-            "date": now.strftime("%Y-%m-%d"),
-            "time": now.strftime("%H:%M:%S"),
             "user_id": user_id,
             "event_id": event_id,
-            "tx_hash": tx_hash,
-            "status": status_,
+            "tx_hash": tx_hash or f"0x{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            "status": models.StatusEnum(status_) if status_ else models.StatusEnum.pending,
+        }
+        db_transaction = models.Transaction(**transaction_data)
+        db.add(db_transaction)
+        db.commit()
+        db.refresh(db_transaction)
+        return db_transaction
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create earn transaction: {str(e)}"
+        )
+
+# Create purchase transaction (POST /purchase)
+@router.post("/purchase", response_model=TransactionOut, status_code=201)
+def create_purchase_transaction_post(
+    transaction: PurchaseTransactionRequest,
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(None, alias="X-User-Id")
+):
+    """Create a purchase transaction via POST with JSON body"""
+    try:
+        transaction_data = {
+            "amount": transaction.amount,
+            "direction": models.DirectionEnum.debit,
+            "description": transaction.description,
+            "user_id": transaction.user_id,
+            "item_id": transaction.item_id,
+            "tx_hash": transaction.tx_hash,
+            "status": models.StatusEnum.pending,
+        }
+        db_transaction = models.Transaction(**transaction_data)
+        db.add(db_transaction)
+        db.commit()
+        db.refresh(db_transaction)
+        return db_transaction
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create purchase transaction: {str(e)}"
+        )
+
+# Create earn transaction (POST /earn)
+@router.post("/earn", response_model=TransactionOut, status_code=201)
+def create_earn_transaction_post(
+    transaction: EarnTransactionRequest,
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(None, alias="X-User-Id")
+):
+    """Create an earn transaction via POST with JSON body"""
+    try:
+        transaction_data = {
+            "amount": transaction.amount,
+            "direction": models.DirectionEnum.credit,
+            "description": transaction.description,
+            "user_id": transaction.user_id,
+            "event_id": transaction.event_id,
+            "tx_hash": transaction.tx_hash,
+            "status": models.StatusEnum.pending,
         }
         db_transaction = models.Transaction(**transaction_data)
         db.add(db_transaction)

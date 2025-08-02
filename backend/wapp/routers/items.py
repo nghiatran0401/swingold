@@ -14,8 +14,14 @@ router = APIRouter(
 def read_items(db: Session = Depends(get_db)):
     return db.query(models.Item).all()
 
+@router.get("/{item_id}", response_model=schemas.ItemOut)
+def read_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
 
-@router.post("/", response_model=schemas.ItemOut)
+@router.post("/", response_model=schemas.ItemOut, status_code=201)
 def create_item(
     item: schemas.ItemCreate,
     db: Session = Depends(get_db),
@@ -26,7 +32,7 @@ def create_item(
         raise HTTPException(status_code=403, detail="Admin access required")
 
     try:
-        db_item = models.Item(**item.dict())
+        db_item = models.Item(**item.model_dump())
         db.add(db_item)
         db.commit()
         db.refresh(db_item)
@@ -37,7 +43,6 @@ def create_item(
             status_code=500,
             detail=f"Failed to create item: {str(e)}"
         )
-
 
 @router.put("/{item_id}", response_model=schemas.ItemOut)
 def update_item(
@@ -55,7 +60,7 @@ def update_item(
         raise HTTPException(status_code=404, detail="Item not found")
 
     try:
-        update_data = item_update.dict(exclude_unset=True)
+        update_data = item_update.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_item, key, value)
         db.commit()
@@ -67,7 +72,6 @@ def update_item(
             status_code=500,
             detail=f"Failed to update item: {str(e)}"
         )
-
 
 @router.delete("/{item_id}")
 def delete_item(
