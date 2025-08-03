@@ -1,13 +1,31 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
-interface TradeEvents {
-    // Emitted when a new trade is created
-    event TradeCreated(uint256 indexed id, address indexed buyer, address indexed seller, uint256 price, string itemName);
+abstract contract TradeEvents {
+    event TradeCreated(
+        address indexed buyer,
+        address indexed seller,
+        string itemName,
+        uint256 itemPrice,
+        uint256 timestamp
+    );
 
-    // Emitted when a trade is successfully confirmed by the buyer
-    event TradeConfirmed(uint256 indexed id);
+    event TradeConfirmed(
+        address indexed buyer,
+        address indexed seller,
+        string itemName,
+        uint256 timestamp
+    );
 
-    // Emitted when a trade is cancelled or timed out
-    event TradeCancelled(uint256 indexed id);
+    event TradeCancelled(
+        address indexed buyer,
+        string itemName,
+        uint256 timestamp
+    );
+
+    event TradeExpired(
+        address indexed buyer,
+        string itemName,
+        uint256 timestamp
+    );
 }

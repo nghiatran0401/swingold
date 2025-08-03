@@ -1,6 +1,12 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
-/** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: "0.8.28",
+  networks: {
+    localreal: {
+      url: process.env.LOCALREAL_RPC_URL,
+      accounts: [process.env.INITOWNER_PRIVATE_KEY],
+    },
+  },
+  solidity: "0.8.20",
 };

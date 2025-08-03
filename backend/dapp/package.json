@@ -9,7 +9,7 @@
     "extract-abis": "node extract-abis.js",
     "node": "npx hardhat node",
     "test": "npx hardhat test",
-    "deploy": "npx hardhat ignition deploy ./ignition/modules/DeployContracts.js --network localhost"
+    "deploy": "npx hardhat ignition deploy scripts/DeployContracts.js --network localhost"
   },
   "keywords": [],
   "author": "",
@@ -17,10 +17,11 @@
   "type": "commonjs",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
-    "hardhat": "^2.26.0"
+    "hardhat": "^2.26.1"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.4.0",
+    "chai": "^5.2.1",
     "dotenv": "^17.2.0"
   }
 }

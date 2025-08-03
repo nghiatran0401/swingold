@@ -1,68 +1,80 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
-import "./interfaces/MyToken.sol";
-import "./libs/TradeStructs.sol";
+import "./Swingold.sol";
 import "./libs/TradeEvents.sol";
-
-// This contract manages trades between buyers and sellers using a custom token (defined in MyToken.sol). 
-// It allows users to create, confirm, and cancel trades for digital items, with a built-in time limit for confirmation.
+import "./libs/TradeStructs.sol";
 
 contract TradeManager is TradeEvents {
-    address public owner;
-    MyToken public token;
+    using TradeStructs for TradeStructs.Trade;
 
-    uint256 public tradeCount;
-    mapping(uint256 => Trade) public trades;
+    mapping(string => TradeStructs.Trade) public trades;
+    Swingold public token;
 
-    constructor(address tokenAddress) {
-        owner = msg.sender;
-        token = MyToken(tokenAddress);
+    constructor(address payable tokenAddress) {
+        token = Swingold(tokenAddress); // Payable-compatible
     }
 
-    modifier onlyBuyer(uint256 tradeId) {
-        require(trades[tradeId].buyer == msg.sender, "Not buyer");
-        _;
-    }
+    /// @notice Create a new trade
+    function createTrade(
+        address seller,
+        string memory itemName,
+        string memory itemCategory,
+        uint256 itemPrice
+    ) external {
+        require(seller != address(0), "Invalid seller");
+        require(token.balanceOf(msg.sender) >= itemPrice, "Insufficient SG");
+        require(token.allowance(msg.sender, address(this)) >= itemPrice, "Not approved to spend SG");
+        require(trades[itemName].createdAt == 0, "Trade already exists");
 
-    // Creates a new trade between the buyer and a seller
-    function createTrade(address _seller, string memory _itemName, uint256 _itemPrice) public {
-        require(token.balanceOf(msg.sender) >= _itemPrice, "Insufficient Gold");
-
-        tradeCount++;
-        trades[tradeCount] = Trade({
-            id: tradeCount,
+        trades[itemName] = TradeStructs.Trade({
             buyer: msg.sender,
-            seller: _seller,
-            itemName: _itemName,
-            itemPrice: _itemPrice,
+            seller: seller,
+            itemName: itemName,
+            itemCategory: itemCategory,
+            itemPrice: itemPrice,
             createdAt: block.timestamp,
             confirmed: false,
             completed: false
         });
 
-        emit TradeCreated(tradeCount, msg.sender, _seller, _itemPrice, _itemName);
+        emit TradeCreated(msg.sender, seller, itemName, itemPrice, block.timestamp);
     }
 
-    // Confirms the trade within the allowed time (10 mins max)
-    function confirmTrade(uint256 tradeId) public onlyBuyer(tradeId) {
-        Trade storage t = trades[tradeId];
-        require(!t.completed && !t.confirmed, "Already done");
-        require(block.timestamp <= t.createdAt + 10 minutes, "Expired");
+    /// @notice Confirm the trade within time limit
+    function confirmTrade(string memory itemName) external {
+        TradeStructs.Trade storage t = trades[itemName];
+        require(t.buyer == msg.sender, "Only buyer can confirm");
+        require(!t.confirmed && !t.completed, "Already handled");
+        require(block.timestamp <= t.createdAt + 10 minutes, "Trade expired");
 
+        require(token.transferFrom(msg.sender, t.seller, t.itemPrice), "Transfer failed");
         t.confirmed = true;
         t.completed = true;
-        token.transferFrom(t.buyer, t.seller, t.itemPrice);
-    emit TradeConfirmed(tradeId);
+
+        emit TradeConfirmed(t.buyer, t.seller, itemName, block.timestamp);
     }
 
-    // Cancels the trade if it hasn't been completed or expired
-    function cancelTrade(uint256 tradeId) public {
-        Trade storage t = trades[tradeId];
-        require(!t.completed, "Already done");
-        require(msg.sender == t.buyer || block.timestamp > t.createdAt + 10 minutes, "Not allowed");
+    /// @notice Cancel trade before confirmation
+    function cancelTrade(string memory itemName) external {
+        TradeStructs.Trade storage t = trades[itemName];
+        require(t.buyer == msg.sender, "Only buyer can cancel");
+        require(!t.confirmed && !t.completed, "Cannot cancel");
 
-        t.completed = true;
-        emit TradeCancelled(tradeId);
+        delete trades[itemName];
+
+        emit TradeCancelled(msg.sender, itemName, block.timestamp);
+    }
+
+    /// @notice Expire trade after timeout (public call)
+    function expireTrade(string memory itemName) external {
+        TradeStructs.Trade storage t = trades[itemName];
+        require(!t.confirmed && !t.completed, "Already handled");
+        require(block.timestamp > t.createdAt + 10 minutes, "Not yet expired");
+
+        address expiredBuyer = t.buyer;
+        delete trades[itemName];
+
+        emit TradeExpired(expiredBuyer, itemName, block.timestamp);
     }
 }

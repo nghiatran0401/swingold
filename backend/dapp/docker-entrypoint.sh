@@ -15,4 +15,4 @@ npx hardhat ignition deploy ./ignition/modules/DeployContracts.js --network loca
 node extract-abis.js
 
 # Keep the Hardhat node running in the foreground
-wait $HARDHAT_PID 
+wait $HARDHAT_PID
