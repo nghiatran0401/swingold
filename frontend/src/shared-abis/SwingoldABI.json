@@ -2,9 +2,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "initialSupply",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "initialOwner",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -97,6 +97,28 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableInvalidOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -127,23 +149,17 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "from",
+        "name": "previousOwner",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "to",
+        "name": "newOwner",
         "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
       }
     ],
-    "name": "GoldSent",
+    "name": "OwnershipTransferred",
     "type": "event"
   },
   {
@@ -223,6 +239,24 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "awardStudent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "account",
         "type": "address"
       }
@@ -252,22 +286,10 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "getBalanceOf",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
+    "inputs": [],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -298,22 +320,9 @@
             "type": "uint256"
           }
         ],
-        "internalType": "struct Swingold.HistoryRecord[]",
+        "internalType": "struct Swingold.TransferLog[]",
         "name": "",
         "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getMyBalance",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -323,34 +332,18 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "history",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "counterparty",
+        "name": "to",
         "type": "address"
       },
       {
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "name": "mint",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -377,6 +370,13 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -481,5 +481,35 @@
     ],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ]

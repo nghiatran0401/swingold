@@ -2,7 +2,7 @@
   {
     "inputs": [
       {
-        "internalType": "address",
+        "internalType": "address payable",
         "name": "tokenAddress",
         "type": "address"
       }
@@ -15,8 +15,20 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "buyer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "itemName",
+        "type": "string"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
-        "name": "id",
+        "name": "timestamp",
         "type": "uint256"
       }
     ],
@@ -28,8 +40,26 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "buyer",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "seller",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "itemName",
+        "type": "string"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
-        "name": "id",
+        "name": "timestamp",
         "type": "uint256"
       }
     ],
@@ -41,12 +71,6 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
         "internalType": "address",
         "name": "buyer",
         "type": "address"
@@ -59,26 +83,57 @@
       },
       {
         "indexed": false,
+        "internalType": "string",
+        "name": "itemName",
+        "type": "string"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
-        "name": "price",
+        "name": "itemPrice",
         "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "string",
-        "name": "itemName",
-        "type": "string"
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
       }
     ],
     "name": "TradeCreated",
     "type": "event"
   },
   {
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "buyer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "itemName",
+        "type": "string"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
-        "name": "tradeId",
+        "name": "timestamp",
         "type": "uint256"
+      }
+    ],
+    "name": "TradeExpired",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "itemName",
+        "type": "string"
       }
     ],
     "name": "cancelTrade",
@@ -89,9 +144,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "tradeId",
-        "type": "uint256"
+        "internalType": "string",
+        "name": "itemName",
+        "type": "string"
       }
     ],
     "name": "confirmTrade",
@@ -103,17 +158,22 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_seller",
+        "name": "seller",
         "type": "address"
       },
       {
         "internalType": "string",
-        "name": "_itemName",
+        "name": "itemName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "itemCategory",
         "type": "string"
       },
       {
         "internalType": "uint256",
-        "name": "_itemPrice",
+        "name": "itemPrice",
         "type": "uint256"
       }
     ],
@@ -123,16 +183,16 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        "internalType": "string",
+        "name": "itemName",
+        "type": "string"
       }
     ],
-    "stateMutability": "view",
+    "name": "expireTrade",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -140,22 +200,9 @@
     "name": "token",
     "outputs": [
       {
-        "internalType": "contract MyToken",
+        "internalType": "contract Swingold",
         "name": "",
         "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "tradeCount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -164,18 +211,13 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "string",
         "name": "",
-        "type": "uint256"
+        "type": "string"
       }
     ],
     "name": "trades",
     "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
       {
         "internalType": "address",
         "name": "buyer",
@@ -189,6 +231,11 @@
       {
         "internalType": "string",
         "name": "itemName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "itemCategory",
         "type": "string"
       },
       {

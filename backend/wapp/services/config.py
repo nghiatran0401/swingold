@@ -14,21 +14,15 @@ class Settings:
     MYSQL_DATABASE: str = os.getenv("MYSQL_DATABASE")
     MYSQL_PORT: int = int(os.getenv("MYSQL_PORT"))
 
-    # API settings
-    API_HOST: str = os.getenv("API_HOST")
-    API_PORT: int = int(os.getenv("API_PORT"))
-
-    # CORS settings
-    FRONTEND_URL: str = os.getenv("FRONTEND_URL")
+    # ABI output directory
+    ABI_OUTPUT_DIR: str = os.getenv("ABI_OUTPUT_DIR")
 
     # Blockchain settings
-    BLOCKCHAIN_RPC_URL: str = os.getenv("BLOCKCHAIN_RPC_URL")
-    PRIVATE_KEY: str = os.getenv("PRIVATE_KEY")
+    INITOWNER_ADDRESS: str = os.getenv("INITOWNER_ADDRESS")
+    INITOWNER_PRIVATE_KEY: str = os.getenv("INITOWNER_PRIVATE_KEY")
     SWINGOLD_ADDRESS: str = os.getenv("SWINGOLD_ADDRESS")
     TRADE_MANAGER_ADDRESS: str = os.getenv("TRADE_MANAGER_ADDRESS")
-
-    # ABI settings
-    ABI_OUTPUT_DIR: str = os.getenv("ABI_OUTPUT_DIR")
+    BLOCKCHAIN_RPC_URL: str = os.getenv("BLOCKCHAIN_RPC_URL")
 
     @property
     def DATABASE_URL(self) -> str:
