@@ -1,104 +1,119 @@
 const { expect } = require("chai");
-const hre = require("hardhat");
-const { parseEther, formatEther } = require("ethers");
+const { ethers } = require("hardhat");
+const { parseEther, formatEther } = ethers;
 
-const { ethers } = hre;
+describe("Swingold & TradeManager Full Integration Test", function () {
+	let gold, trade;
+	let accounts;
+	let buyer, seller;
 
-describe("Swingold & TradeManager Integration (Ethers v6)", function () {
-  let gold, trade;
-  let owner, buyer, seller, other;
+	beforeEach(async () => {
+		accounts = await ethers.getSigners();
+		[buyer, seller] = accounts;
 
-  beforeEach(async () => {
-    [owner, buyer, seller, other] = await ethers.getSigners();
+		// Deploy Swingold
+		const Swingold = await ethers.getContractFactory("Swingold");
+		gold = await Swingold.connect(buyer).deploy(await buyer.getAddress());
+		await gold.waitForDeployment();
 
-    // Deploy Swingold
-    const Swingold = await ethers.getContractFactory("Swingold");
-    gold = await Swingold.connect(owner).deploy(parseEther("10000"));
-    await gold.waitForDeployment();
+		// Mint 10,000 SG to all accounts
+		for (const acct of accounts) {
+			await gold.connect(buyer).mint(acct.address, parseEther("10000"));
+		}
 
-    // Deploy TradeManager with token address
-    const TradeManager = await ethers.getContractFactory("TradeManager");
-    trade = await TradeManager.connect(owner).deploy(await gold.getAddress());
-    await trade.waitForDeployment();
+		// Deploy TradeManager
+		const TradeManager = await ethers.getContractFactory("TradeManager");
+		trade = await TradeManager.connect(buyer).deploy(await gold.getAddress());
+		await trade.waitForDeployment();
 
-    // Transfer and approve tokens
-    await gold.connect(owner).transfer(await buyer.getAddress(), parseEther("1000"));
-    await gold.connect(buyer).approve(await trade.getAddress(), parseEther("1000"));
-  });
+		// Approve TradeManager for buyer to spend SG
+		await gold.connect(buyer).approve(await trade.getAddress(), parseEther("10000"));
+	});
 
-  it("should allow buyer to create a trade and store data correctly", async () => {
-    await trade.connect(buyer).createTrade(await seller.getAddress(), "Sword", parseEther("100"));
-    const t = await trade.trades(1);
+	it("1. All accounts should receive 10,000 Swingold", async () => {
+		for (const acct of accounts) {
+			const balance = await gold.balanceOf(acct.address);
+			expect(balance).to.equal(parseEther("10000"));
+		}
+	});
 
-    expect(t.buyer).to.equal(await buyer.getAddress());
-    expect(t.seller).to.equal(await seller.getAddress());
-    expect(t.itemName).to.equal("Sword");
-    expect(t.itemPrice).to.equal(parseEther("100"));
-    expect(t.completed).to.be.false;
-  });
+	it("2. Buyer and seller can create trade with each other", async () => {
+		await trade.connect(buyer).createTrade(
+			seller.address,
+			"Book",
+			"Education",
+			parseEther("200")
+		);
 
-  it("should not allow confirm after 10 minutes", async () => {
-    await trade.connect(buyer).createTrade(await seller.getAddress(), "Bow", parseEther("50"));
+		const tradeInfo = await trade.trades("Book");
+		expect(tradeInfo.itemName).to.equal("Book");
+		expect(tradeInfo.buyer).to.equal(buyer.address);
+		expect(tradeInfo.seller).to.equal(seller.address);
+		expect(tradeInfo.itemPrice).to.equal(parseEther("200"));
+		expect(tradeInfo.confirmed).to.be.false;
+	});
 
-    // Fast-forward >10 minutes
-    await ethers.provider.send("evm_increaseTime", [11 * 60]);
-    await ethers.provider.send("evm_mine");
+	it("3. Buyer loses SG after confirming the trade", async () => {
+		await trade.connect(buyer).createTrade(seller.address, "Bag", "Gear", parseEther("300"));
 
-    await expect(trade.connect(buyer).confirmTrade(1)).to.be.revertedWith("Expired");
-  });
+		const buyerBefore = await gold.balanceOf(buyer.address);
+		await trade.connect(buyer).confirmTrade("Bag");
+		const buyerAfter = await gold.balanceOf(buyer.address);
 
-  it("should allow confirmation within time and transfer Gold", async () => {
-    await trade.connect(buyer).createTrade(await seller.getAddress(), "Shield", parseEther("200"));
-    const balanceBefore = await gold.balanceOf(await seller.getAddress());
-    await trade.connect(buyer).confirmTrade(1);
-    const t = await trade.trades(1);
-    expect(t.confirmed).to.be.true;
-    expect(t.completed).to.be.true;
-    const balanceAfter = await gold.balanceOf(await seller.getAddress());
-    expect(balanceAfter - balanceBefore).to.equal(parseEther("200"));
-  });
+		expect(buyerBefore - buyerAfter).to.equal(parseEther("300"));
+	});
 
-  it("should cancel trade automatically after 10 minutes by anyone", async () => {
-    await trade.connect(buyer).createTrade(await seller.getAddress(), "Potion", parseEther("30"));
+	it("4. Seller gains SG after trade confirmation", async () => {
+		await trade.connect(buyer).createTrade(seller.address, "Pen", "Stationery", parseEther("150"));
 
-    await ethers.provider.send("evm_increaseTime", [11 * 60]);
-    await ethers.provider.send("evm_mine");
+		const sellerBefore = await gold.balanceOf(seller.address);
+		await trade.connect(buyer).confirmTrade("Pen");
+		const sellerAfter = await gold.balanceOf(seller.address);
 
-    await trade.connect(seller).cancelTrade(1);
+		expect(sellerAfter - sellerBefore).to.equal(parseEther("150"));
+	});
 
-    const t = await trade.trades(1);
-    expect(t.completed).to.be.true;
-    expect(t.confirmed).to.be.false;
-  });
+	it("5. Cannot confirm trade after 10 minutes (timeout)", async () => {
+		await trade.connect(buyer).createTrade(seller.address, "Clock", "Tool", parseEther("250"));
 
-  it("should not deduct Gold on cancel", async () => {
-    await trade.connect(buyer).createTrade(await seller.getAddress(), "Scroll", parseEther("10"));
+		// Simulate 11 minutes later
+		await ethers.provider.send("evm_increaseTime", [11 * 60]);
+		await ethers.provider.send("evm_mine");
 
-    const balBefore = await gold.balanceOf(await buyer.getAddress());
+		await expect(
+			trade.connect(buyer).confirmTrade("Clock")
+		).to.be.revertedWith("Trade expired");
+	});
 
-    await ethers.provider.send("evm_increaseTime", [11 * 60]);
-    await ethers.provider.send("evm_mine");
+	it("6. After timeout, trade should auto cancel (confirmed = false, completed = false)", async () => {
+		await trade.connect(buyer).createTrade(seller.address, "Lamp", "Electronics", parseEther("120"));
 
-    await trade.connect(buyer).cancelTrade(1);
+		await ethers.provider.send("evm_increaseTime", [11 * 60]);
+		await ethers.provider.send("evm_mine");
 
-    const balAfter = await gold.balanceOf(await buyer.getAddress());
-    expect(balAfter).to.equal(balBefore);
-  });
+		const tradeInfo = await trade.trades("Lamp");
+		expect(tradeInfo.confirmed).to.be.false;
+		expect(tradeInfo.completed).to.be.false;
+	});
 
-  it("should record transfer history on swingold", async () => {
-    await gold.connect(buyer).transferGold(await seller.getAddress(), parseEther("20"));
+	it("7. ETH cannot be directly used in TradeManager (expect revert)", async () => {
+		await expect(
+			trade.connect(buyer).createTrade(
+				seller.address,
+				"ETH Item",
+				"Test",
+				parseEther("1"),
+				{ value: parseEther("1") } // sending ETH along
+			)
+		).to.be.reverted; // trade does not accept ETH
+	});
 
-    const buyerHistory = await gold.getHistory(await buyer.getAddress());
-    expect(buyerHistory.length).to.equal(1);
-    expect(buyerHistory[0].counterparty).to.equal(await seller.getAddress());
+	it("8. ETH can be swapped to SG by deposit()", async () => {
+		// Buyer deposits 1 ETH and receives 1 SG
+		const depositTx = await gold.connect(buyer).deposit({ value: parseEther("1") });
+		await depositTx.wait();
 
-    const sellerHistory = await gold.getHistory(await seller.getAddress());
-    expect(sellerHistory.length).to.equal(1);
-    expect(sellerHistory[0].counterparty).to.equal(await buyer.getAddress());
-  });
-
-  it("should view wallet balance properly", async () => {
-    const bal = await gold.connect(buyer).getMyBalance();
-    expect(bal).to.equal(parseEther("1000"));
-  });
+		const balance = await gold.balanceOf(buyer.address);
+		expect(balance).to.equal(parseEther("10001")); // 10,000 initial + 1 from deposit
+	});
 });
