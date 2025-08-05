@@ -1,4 +1,8 @@
 from web3 import Web3
+<<<<<<< Updated upstream
+=======
+import hashlib
+>>>>>>> Stashed changes
 import json
 import os
 from services.config import settings
@@ -7,7 +11,11 @@ from sqlalchemy.orm import Session
 from .models import User
 
 w3 = Web3(Web3.HTTPProvider(settings.BLOCKCHAIN_RPC_URL))
+<<<<<<< Updated upstream
 ACCOUNT = w3.eth.account.from_key(settings.PRIVATE_KEY)
+=======
+ACCOUNT = w3.eth.account.from_key(settings.INITOWNER_PRIVATE_KEY)
+>>>>>>> Stashed changes
 TRADE_MANAGER_ADDRESS = Web3.to_checksum_address(settings.TRADE_MANAGER_ADDRESS)
 SWINGOLD_ADDRESS = Web3.to_checksum_address(settings.SWINGOLD_ADDRESS)
 
@@ -15,7 +23,11 @@ with open(os.path.join(settings.ABI_OUTPUT_DIR, "TradeManagerABI.json"), "r") as
     trade_abi = json.load(f)
 with open(os.path.join(settings.ABI_OUTPUT_DIR, "SwingoldABI.json"), "r") as f:
     token_abi = json.load(f)
+<<<<<<< Updated upstream
     
+=======
+
+>>>>>>> Stashed changes
 # Contract instances
 trade_contract = w3.eth.contract(address=TRADE_MANAGER_ADDRESS, abi=trade_abi)
 token_contract = w3.eth.contract(address=SWINGOLD_ADDRESS, abi=token_abi)
@@ -54,6 +66,28 @@ def confirm_trade(trade_id: int) -> str:
 def get_balance(address: str) -> int:
     return token_contract.functions.balanceOf(Web3.to_checksum_address(address)).call()
 
+<<<<<<< Updated upstream
+=======
+# ========================================
+# Wallet management functions
+# ========================================
+
+# Ensures wallet exists for a user
+def ensure_wallet_exists_for_user(db: Session, user: User) -> User:
+    if user.wallet_address and hasattr(user, 'private_key') and user.private_key:
+        return user  # Already has wallet
+
+    acct = Account.create()
+    user.wallet_address = acct.address
+    user.private_key = acct.key.hex()
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+# This function creates new user, updated to mark as deprecated
+# Only use this if you're inserting brand new users manually
+>>>>>>> Stashed changes
 def create_wallet_and_insert(db: Session, username: str, email: str):
     acct = Account.create()
     wallet_address = acct.address

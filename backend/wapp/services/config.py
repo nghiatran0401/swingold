@@ -23,7 +23,7 @@ class Settings:
 
     # Blockchain settings
     BLOCKCHAIN_RPC_URL: str = os.getenv("BLOCKCHAIN_RPC_URL")
-    PRIVATE_KEY: str = os.getenv("PRIVATE_KEY")
+    INITOWNER_PRIVATE_KEY: str = os.getenv("INITOWNER_PRIVATE_KEY")
     SWINGOLD_ADDRESS: str = os.getenv("SWINGOLD_ADDRESS")
     TRADE_MANAGER_ADDRESS: str = os.getenv("TRADE_MANAGER_ADDRESS")
 

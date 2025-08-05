@@ -87,7 +87,27 @@ function Wallet({ logout }) {
         updateWalletStatus("Wallet verified! Updating profile...");
         const updatedUser = await updateWalletAddress(selectedAddress);
         setUserProfile(updatedUser);
+<<<<<<< Updated upstream
         updateWalletStatus("Wallet linked to your profile!");
+=======
+        updateWalletStatus('Wallet linked to your profile!');
+        try {
+            await window.ethereum.request({
+                method: 'wallet_watchAsset',
+                params: {
+                    type: 'ERC20',
+                    options: {
+                        address: '0xdFb76514c7bBB68CD6d2750052629106BbBD8C7B',
+                        symbol: 'SG',
+                        decimals: 18,
+                        image: 'https://yourdomain.com/sg-icon.png',
+                    },
+                },
+            });
+        } catch (tokenAddError) {
+            console.error('Token add to MetaMask failed:', tokenAddError);
+        }
+>>>>>>> Stashed changes
       } else {
         updateWalletStatus("Signature verification failed.");
       }

@@ -5,6 +5,7 @@ from services.database import get_db
 import services.models as models
 from services.web3 import create_trade, confirm_trade, get_balance
 from services.schemas import TransactionOut
+from services.web3 import ensure_wallet_exists_for_user
 
 router = APIRouter(
     prefix="/transactions/onchain",
@@ -23,6 +24,17 @@ def create_trade_onchain(
     """Create a trade on-chain and record in DB if successful."""
     try:
         tx_hash = create_trade(seller, item_name, item_price)
+<<<<<<< Updated upstream
+=======
+        
+        # Find buyer by wallet address
+        buyer_user = db.query(models.User).filter(models.User.wallet_address == buyer).first()
+        if not buyer_user:
+            raise HTTPException(status_code=404, detail="Buyer not found")
+
+        buyer_user = ensure_wallet_exists_for_user(db, buyer_user)
+        
+>>>>>>> Stashed changes
         # Record transaction in DB
         db_transaction = models.Transaction(
             amount=item_price,
@@ -50,6 +62,16 @@ def confirm_trade_onchain(
     """Confirm a trade on-chain and record in DB if successful."""
     try:
         tx_hash = confirm_trade(trade_id)
+<<<<<<< Updated upstream
+=======
+        
+        # Find buyer by wallet address
+        buyer_user = db.query(models.User).filter(models.User.wallet_address == buyer).first()
+        if not buyer_user:
+            raise HTTPException(status_code=404, detail="Buyer not found")
+        buyer_user = ensure_wallet_exists_for_user(db, buyer_user)
+
+>>>>>>> Stashed changes
         db_transaction = models.Transaction(
             amount=0,
             direction=models.DirectionEnum.debit,
