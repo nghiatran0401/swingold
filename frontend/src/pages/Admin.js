@@ -1,38 +1,37 @@
-import { useEffect, useState } from 'react';
-import { fetchEvents, fetchItems, createEvent, updateEvent, deleteEvent, createItem, updateItem, deleteItem } from '../api';
-import { Box, Typography, Button, TextField, IconButton, Dialog, DialogTitle, DialogActions, Paper, Alert, Tabs, Tab, Chip, Slide } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import Navbar from '../components/Navbar';
+import { useEffect, useState } from "react";
+import { fetchEvents, fetchItems, createEvent, updateEvent, deleteEvent, createItem, updateItem, deleteItem } from "../api";
+import { Box, Typography, Button, TextField, IconButton, Dialog, DialogTitle, DialogActions, Paper, Alert, Tabs, Tab, Chip, Slide } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 
-export default function Admin ({ user, logout }) {
+export default function Admin({ user, logout }) {
   const [events, setEvents] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // Form state for new event/item
   const [newEvent, setNewEvent] = useState({
-    name: '',
-    description: '',
-    category: '',
-    start_datetime: '',
-    end_datetime: '',
+    name: "",
+    description: "",
+    category: "",
+    start_datetime: "",
+    end_datetime: "",
     price: 0,
-    location: '',
+    location: "",
     seats_available: 0,
-    image_url: '',
-    tags: '',
-    status: 'upcoming',
+    image_url: "",
+    tags: "",
+    status: "upcoming",
   });
   const [newItem, setNewItem] = useState({
-    name: '',
-    description: '',
-    image_url: '',
+    name: "",
+    description: "",
+    image_url: "",
     price: 0.0,
-    tags: '',
-    note: '',
+    tags: "",
+    note: "",
   });
 
   // Edit dialog state
@@ -53,7 +52,7 @@ export default function Admin ({ user, logout }) {
         setLoading(false);
       })
       .catch((_e) => {
-        setError('Failed to load data');
+        setError("Failed to load data");
         setLoading(false);
       });
   }, [user]);
@@ -61,34 +60,33 @@ export default function Admin ({ user, logout }) {
   if (!user || !user.is_admin) {
     return (
       <>
-        <Navbar logout={logout} />
         <Box
           sx={{
-            backgroundColor: '#fafafa',
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            backgroundColor: "#fafafa",
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             pt: 10,
           }}
         >
           <Paper
             elevation={0}
             sx={{
-              borderRadius: '24px',
-              backgroundColor: '#ffffff',
-              border: '1px solid #f0f0f0',
+              borderRadius: "24px",
+              backgroundColor: "#ffffff",
+              border: "1px solid #f0f0f0",
               p: 6,
-              textAlign: 'center',
-              maxWidth: '500px',
+              textAlign: "center",
+              maxWidth: "500px",
               mx: 4,
             }}
           >
             <Typography
               sx={{
-                fontFamily: 'Poppins',
-                fontWeight: '700',
-                color: '#ff001e',
+                fontFamily: "Poppins",
+                fontWeight: "700",
+                color: "#ff001e",
                 mb: 3,
               }}
               variant="h4"
@@ -97,15 +95,15 @@ export default function Admin ({ user, logout }) {
             </Typography>
             <Typography
               sx={{
-                fontFamily: 'Poppins',
-                color: '#666',
+                fontFamily: "Poppins",
+                color: "#666",
                 mb: 4,
               }}
               variant="body1"
             >
               This page is restricted to administrators only.
             </Typography>
-            <Alert severity="error" sx={{ fontFamily: 'Poppins' }}>
+            <Alert severity="error" sx={{ fontFamily: "Poppins" }}>
               Admins only.
             </Alert>
           </Paper>
@@ -120,17 +118,17 @@ export default function Admin ({ user, logout }) {
       const event = await createEvent(newEvent, user.id);
       setEvents([...events, event]);
       setNewEvent({
-        name: '',
-        description: '',
-        category: '',
-        start_datetime: '',
-        end_datetime: '',
+        name: "",
+        description: "",
+        category: "",
+        start_datetime: "",
+        end_datetime: "",
         price: 0,
-        location: '',
+        location: "",
         seats_available: 0,
-        image_url: '',
-        tags: '',
-        status: 'upcoming',
+        image_url: "",
+        tags: "",
+        status: "upcoming",
       });
     } catch (e) {
       setError(e.message);
@@ -151,12 +149,12 @@ export default function Admin ({ user, logout }) {
       const item = await createItem(newItem, user.id);
       setItems([...items, item]);
       setNewItem({
-        name: '',
-        description: '',
-        image_url: '',
+        name: "",
+        description: "",
+        image_url: "",
         price: 0.0,
-        tags: '',
-        note: '',
+        tags: "",
+        note: "",
       });
       setCreateDialogOpen(false);
     } catch (e) {
@@ -176,7 +174,7 @@ export default function Admin ({ user, logout }) {
   // --- EDIT HANDLERS ---
   const openEditDialog = (type, obj) => {
     setEditType(type);
-    if (type === 'event') setEditEvent({ ...obj });
+    if (type === "event") setEditEvent({ ...obj });
     else setEditItem({ ...obj });
     setEditDialogOpen(true);
   };
@@ -188,10 +186,10 @@ export default function Admin ({ user, logout }) {
   };
   const handleEditSave = async () => {
     try {
-      if (editType === 'event') {
+      if (editType === "event") {
         const updated = await updateEvent(editEvent.id, editEvent, user.id);
         setEvents(events.map((e) => (e.id === updated.id ? updated : e)));
-      } else if (editType === 'item') {
+      } else if (editType === "item") {
         const updated = await updateItem(editItem.id, editItem, user.id);
         setItems(items.map((i) => (i.id === updated.id ? updated : i)));
       }
@@ -203,26 +201,24 @@ export default function Admin ({ user, logout }) {
 
   return (
     <>
-      <Navbar logout={logout} />
-
       {/* Main Content */}
       <Box
         sx={{
-          backgroundColor: '#fafafa',
-          minHeight: '100vh',
-          position: 'relative',
+          backgroundColor: "#fafafa",
+          minHeight: "100vh",
+          position: "relative",
         }}
       >
         {/* Hero Section */}
         <Box
           sx={{
-            background: 'linear-gradient(135deg, #ff001e 0%, #d4001a 100%)',
-            height: '500px',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
+            background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+            height: "500px",
+            position: "relative",
+            overflow: "hidden",
+            "&::before": {
               content: '""',
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
@@ -230,44 +226,44 @@ export default function Admin ({ user, logout }) {
               background:
                 'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
               opacity: 0.3,
-              animation: 'float 6s ease-in-out infinite',
-              '@keyframes float': {
-                '0%, 100%': { transform: 'translateY(0px)' },
-                '50%': { transform: 'translateY(-10px)' },
+              animation: "float 6s ease-in-out infinite",
+              "@keyframes float": {
+                "0%, 100%": { transform: "translateY(0px)" },
+                "50%": { transform: "translateY(-10px)" },
               },
             },
           }}
         >
           <Box
             sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              textAlign: 'center',
-              width: '100%',
-              maxWidth: '800px',
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              textAlign: "center",
+              width: "100%",
+              maxWidth: "800px",
               px: 4,
             }}
           >
             <Typography
               sx={{
-                fontFamily: 'Poppins',
-                fontWeight: '900',
-                color: '#ffffff',
+                fontFamily: "Poppins",
+                fontWeight: "900",
+                color: "#ffffff",
                 mb: 3,
-                fontSize: { xs: '3rem', md: '4.5rem' },
-                textShadow: '0 4px 8px rgba(0,0,0,0.2)',
-                letterSpacing: '-0.02em',
-                animation: 'fadeInUp 0.8s ease-out',
-                '@keyframes fadeInUp': {
-                  '0%': {
+                fontSize: { xs: "3rem", md: "4.5rem" },
+                textShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                letterSpacing: "-0.02em",
+                animation: "fadeInUp 0.8s ease-out",
+                "@keyframes fadeInUp": {
+                  "0%": {
                     opacity: 0,
-                    transform: 'translateY(30px)',
+                    transform: "translateY(30px)",
                   },
-                  '100%': {
+                  "100%": {
                     opacity: 1,
-                    transform: 'translateY(0)',
+                    transform: "translateY(0)",
                   },
                 },
               }}
@@ -278,13 +274,13 @@ export default function Admin ({ user, logout }) {
 
             <Typography
               sx={{
-                fontFamily: 'Poppins',
-                fontWeight: '400',
-                color: 'rgba(255,255,255,0.95)',
+                fontFamily: "Poppins",
+                fontWeight: "400",
+                color: "rgba(255,255,255,0.95)",
                 mb: 6,
-                fontSize: '1.3rem',
-                maxWidth: '600px',
-                mx: 'auto',
+                fontSize: "1.3rem",
+                maxWidth: "600px",
+                mx: "auto",
                 lineHeight: 1.5,
               }}
               variant="h5"
@@ -297,7 +293,7 @@ export default function Admin ({ user, logout }) {
         {/* Floating Navigation Section */}
         <Box
           sx={{
-            position: 'relative',
+            position: "relative",
             zIndex: 2,
             mt: -8,
             mb: 8,
@@ -305,23 +301,23 @@ export default function Admin ({ user, logout }) {
         >
           <Box
             sx={{
-              maxWidth: '1200px',
-              mx: 'auto',
+              maxWidth: "1200px",
+              mx: "auto",
               px: 4,
             }}
           >
             <Paper
               elevation={0}
               sx={{
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                backdropFilter: 'blur(20px)',
-                borderRadius: '24px',
+                backgroundColor: "rgba(255,255,255,0.95)",
+                backdropFilter: "blur(20px)",
+                borderRadius: "24px",
                 p: 4,
-                boxShadow: '0 20px 60px rgba(0,0,0,0.1), 0 0 40px rgba(255, 0, 30, 0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: '0 25px 80px rgba(0,0,0,0.15), 0 0 60px rgba(255, 0, 30, 0.15)',
+                boxShadow: "0 20px 60px rgba(0,0,0,0.1), 0 0 40px rgba(255, 0, 30, 0.1)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  boxShadow: "0 25px 80px rgba(0,0,0,0.15), 0 0 60px rgba(255, 0, 30, 0.15)",
                 },
               }}
             >
@@ -329,20 +325,20 @@ export default function Admin ({ user, logout }) {
                 centered
                 onChange={(_, v) => setTab(v)}
                 sx={{
-                  '& .MuiTab-root': {
-                    fontFamily: 'Poppins',
-                    fontWeight: '600',
-                    fontSize: '1rem',
-                    textTransform: 'none',
-                    color: '#666',
-                    '&.Mui-selected': {
-                      color: '#ff001e',
+                  "& .MuiTab-root": {
+                    fontFamily: "Poppins",
+                    fontWeight: "600",
+                    fontSize: "1rem",
+                    textTransform: "none",
+                    color: "#666",
+                    "&.Mui-selected": {
+                      color: "#ff001e",
                     },
                   },
-                  '& .MuiTabs-indicator': {
-                    backgroundColor: '#ff001e',
-                    height: '3px',
-                    borderRadius: '2px',
+                  "& .MuiTabs-indicator": {
+                    backgroundColor: "#ff001e",
+                    height: "3px",
+                    borderRadius: "2px",
                   },
                 }}
                 value={tab}
@@ -357,8 +353,8 @@ export default function Admin ({ user, logout }) {
         {/* Main Content Area */}
         <Box
           sx={{
-            maxWidth: '1200px',
-            mx: 'auto',
+            maxWidth: "1200px",
+            mx: "auto",
             px: 4,
             pb: 8,
           }}
@@ -368,8 +364,8 @@ export default function Admin ({ user, logout }) {
               severity="error"
               sx={{
                 mb: 4,
-                fontFamily: 'Poppins',
-                borderRadius: '12px',
+                fontFamily: "Poppins",
+                borderRadius: "12px",
               }}
             >
               {error}
@@ -379,17 +375,17 @@ export default function Admin ({ user, logout }) {
           {loading ? (
             <Box
               sx={{
-                textAlign: 'center',
+                textAlign: "center",
                 py: 8,
-                backgroundColor: '#ffffff',
-                borderRadius: '24px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                backgroundColor: "#ffffff",
+                borderRadius: "24px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
               }}
             >
               <Typography
                 sx={{
-                  color: '#666',
-                  fontFamily: 'Poppins',
+                  color: "#666",
+                  fontFamily: "Poppins",
                   mb: 2,
                 }}
                 variant="h5"
@@ -401,95 +397,95 @@ export default function Admin ({ user, logout }) {
             <Paper
               elevation={0}
               sx={{
-                borderRadius: '24px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #f0f0f0',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)',
+                borderRadius: "24px",
+                backgroundColor: "#ffffff",
+                border: "1px solid #f0f0f0",
+                overflow: "hidden",
+                background: "linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)",
               }}
             >
               {tab === 0 && (
                 <>
-                  <Box sx={{ p: 4, borderBottom: '1px solid #f0f0f0' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Box sx={{ p: 4, borderBottom: "1px solid #f0f0f0" }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
                       <Typography
                         sx={{
-                          fontFamily: 'Poppins',
-                          fontWeight: '700',
-                          color: '#2A2828',
+                          fontFamily: "Poppins",
+                          fontWeight: "700",
+                          color: "#2A2828",
                         }}
                         variant="h5"
                       >
                         Events Management
                       </Typography>
                       <Button
-                        onClick={() => setCreateDialogOpen('event')}
+                        onClick={() => setCreateDialogOpen("event")}
                         startIcon={<AddIcon />}
                         sx={{
-                          background: 'linear-gradient(45deg, #ff001e, #d4001a)',
-                          fontFamily: 'Poppins',
-                          textTransform: 'none',
-                          borderRadius: '12px',
+                          background: "linear-gradient(45deg, #ff001e, #d4001a)",
+                          fontFamily: "Poppins",
+                          textTransform: "none",
+                          borderRadius: "12px",
                           px: 3,
                           py: 1.2,
-                          fontWeight: '600',
-                          boxShadow: '0 4px 12px rgba(255, 0, 30, 0.3)',
-                          '&:hover': {
-                            background: 'linear-gradient(45deg, #d4001a, #b30017)',
-                            transform: 'translateY(-2px)',
-                            boxShadow: '0 6px 20px rgba(255, 0, 30, 0.4)',
+                          fontWeight: "600",
+                          boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
+                          "&:hover": {
+                            background: "linear-gradient(45deg, #d4001a, #b30017)",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 6px 20px rgba(255, 0, 30, 0.4)",
                           },
                         }}
                         variant="contained"
                       >
-                  Create New Event
+                        Create New Event
                       </Button>
                     </Box>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
                       <Chip color="primary" label={`${events.length} Total Events`} variant="outlined" />
-                      <Chip color="success" label={`${events.filter((e) => e.status === 'upcoming').length} Upcoming`} variant="outlined" />
-                      <Chip color="warning" label={`${events.filter((e) => e.status === 'active').length} Active`} variant="outlined" />
+                      <Chip color="success" label={`${events.filter((e) => e.status === "upcoming").length} Upcoming`} variant="outlined" />
+                      <Chip color="warning" label={`${events.filter((e) => e.status === "active").length} Active`} variant="outlined" />
                     </Box>
                   </Box>
-                  <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
+                  <Box sx={{ maxHeight: "600px", overflow: "auto" }}>
                     {events.map((event) => (
                       <Box
                         key={event.id}
                         sx={{
                           p: 3,
-                          borderBottom: '1px solid #f0f0f0',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            backgroundColor: '#f8f9ff',
+                          borderBottom: "1px solid #f0f0f0",
+                          transition: "all 0.3s ease",
+                          "&:hover": {
+                            backgroundColor: "#f8f9ff",
                           },
-                          '&:last-child': {
-                            borderBottom: 'none',
+                          "&:last-child": {
+                            borderBottom: "none",
                           },
                         }}
                       >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                           <Box sx={{ flex: 1 }}>
                             <Typography
                               sx={{
-                                fontFamily: 'Poppins',
-                                fontWeight: '600',
-                                color: '#2A2828',
+                                fontFamily: "Poppins",
+                                fontWeight: "600",
+                                color: "#2A2828",
                                 mb: 1,
                               }}
                               variant="h6"
                             >
                               {event.name}
                             </Typography>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
                               {event.category && (
                                 <Chip
                                   label={event.category}
                                   size="small"
                                   sx={{
-                                    backgroundColor: '#e3f2fd',
-                                    color: '#1976d2',
-                                    fontFamily: 'Poppins',
-                                    fontWeight: '500',
+                                    backgroundColor: "#e3f2fd",
+                                    color: "#1976d2",
+                                    fontFamily: "Poppins",
+                                    fontWeight: "500",
                                   }}
                                 />
                               )}
@@ -497,28 +493,28 @@ export default function Admin ({ user, logout }) {
                                 label={`${event.price} GOLD`}
                                 size="small"
                                 sx={{
-                                  backgroundColor: '#fff3e0',
-                                  color: '#f57c00',
-                                  fontFamily: 'Poppins',
-                                  fontWeight: '600',
+                                  backgroundColor: "#fff3e0",
+                                  color: "#f57c00",
+                                  fontFamily: "Poppins",
+                                  fontWeight: "600",
                                 }}
                               />
                               <Chip
                                 label={event.status}
                                 size="small"
                                 sx={{
-                                  backgroundColor: event.status === 'upcoming' ? '#e8f5e8' : event.status === 'active' ? '#fff3e0' : '#ffebee',
-                                  color: event.status === 'upcoming' ? '#2e7d32' : event.status === 'active' ? '#f57c00' : '#d32f2f',
-                                  fontFamily: 'Poppins',
-                                  fontWeight: '500',
+                                  backgroundColor: event.status === "upcoming" ? "#e8f5e8" : event.status === "active" ? "#fff3e0" : "#ffebee",
+                                  color: event.status === "upcoming" ? "#2e7d32" : event.status === "active" ? "#f57c00" : "#d32f2f",
+                                  fontFamily: "Poppins",
+                                  fontWeight: "500",
                                 }}
                               />
                             </Box>
                             {event.description && (
                               <Typography
                                 sx={{
-                                  fontFamily: 'Poppins',
-                                  color: '#666',
+                                  fontFamily: "Poppins",
+                                  color: "#666",
                                   mb: 1,
                                 }}
                                 variant="body2"
@@ -529,9 +525,9 @@ export default function Admin ({ user, logout }) {
                             {event.location && (
                               <Typography
                                 sx={{
-                                  fontFamily: 'Poppins',
-                                  color: '#888',
-                                  fontSize: '0.85rem',
+                                  fontFamily: "Poppins",
+                                  color: "#888",
+                                  fontSize: "0.85rem",
                                 }}
                                 variant="body2"
                               >
@@ -539,13 +535,13 @@ export default function Admin ({ user, logout }) {
                               </Typography>
                             )}
                           </Box>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Box sx={{ display: "flex", gap: 1 }}>
                             <IconButton
-                              onClick={() => openEditDialog('event', event)}
+                              onClick={() => openEditDialog("event", event)}
                               sx={{
-                                color: '#ff001e',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(255, 0, 30, 0.1)',
+                                color: "#ff001e",
+                                "&:hover": {
+                                  backgroundColor: "rgba(255, 0, 30, 0.1)",
                                 },
                               }}
                             >
@@ -555,8 +551,8 @@ export default function Admin ({ user, logout }) {
                               color="error"
                               onClick={() => handleDeleteEvent(event.id)}
                               sx={{
-                                '&:hover': {
-                                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                "&:hover": {
+                                  backgroundColor: "rgba(244, 67, 54, 0.1)",
                                 },
                               }}
                             >
@@ -571,85 +567,85 @@ export default function Admin ({ user, logout }) {
               )}
               {tab === 1 && (
                 <>
-                  <Box sx={{ p: 4, borderBottom: '1px solid #f0f0f0' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Box sx={{ p: 4, borderBottom: "1px solid #f0f0f0" }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
                       <Typography
                         sx={{
-                          fontFamily: 'Poppins',
-                          fontWeight: '700',
-                          color: '#2A2828',
+                          fontFamily: "Poppins",
+                          fontWeight: "700",
+                          color: "#2A2828",
                         }}
                         variant="h5"
                       >
                         Items Management
                       </Typography>
                       <Button
-                        onClick={() => setCreateDialogOpen('item')}
+                        onClick={() => setCreateDialogOpen("item")}
                         startIcon={<AddIcon />}
                         sx={{
-                          background: 'linear-gradient(45deg, #ff001e, #d4001a)',
-                          fontFamily: 'Poppins',
-                          textTransform: 'none',
-                          borderRadius: '12px',
+                          background: "linear-gradient(45deg, #ff001e, #d4001a)",
+                          fontFamily: "Poppins",
+                          textTransform: "none",
+                          borderRadius: "12px",
                           px: 3,
                           py: 1.2,
-                          fontWeight: '600',
-                          boxShadow: '0 4px 12px rgba(255, 0, 30, 0.3)',
-                          '&:hover': {
-                            background: 'linear-gradient(45deg, #d4001a, #b30017)',
-                            transform: 'translateY(-2px)',
-                            boxShadow: '0 6px 20px rgba(255, 0, 30, 0.4)',
+                          fontWeight: "600",
+                          boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
+                          "&:hover": {
+                            background: "linear-gradient(45deg, #d4001a, #b30017)",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 6px 20px rgba(255, 0, 30, 0.4)",
                           },
                         }}
                         variant="contained"
                       >
-                  Create New Item
+                        Create New Item
                       </Button>
                     </Box>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
                       <Chip color="primary" label={`${items.length} Total Items`} variant="outlined" />
                       <Chip color="success" label={`${items.filter((i) => i.price > 0).length} Paid Items`} variant="outlined" />
                       <Chip color="info" label={`${items.filter((i) => i.price === 0).length} Free Items`} variant="outlined" />
                     </Box>
                   </Box>
-                  <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
+                  <Box sx={{ maxHeight: "600px", overflow: "auto" }}>
                     {items.map((item) => (
                       <Box
                         key={item.id}
                         sx={{
                           p: 3,
-                          borderBottom: '1px solid #f0f0f0',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            backgroundColor: '#f8f9ff',
+                          borderBottom: "1px solid #f0f0f0",
+                          transition: "all 0.3s ease",
+                          "&:hover": {
+                            backgroundColor: "#f8f9ff",
                           },
-                          '&:last-child': {
-                            borderBottom: 'none',
+                          "&:last-child": {
+                            borderBottom: "none",
                           },
                         }}
                       >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                           <Box sx={{ flex: 1 }}>
                             <Typography
                               sx={{
-                                fontFamily: 'Poppins',
-                                fontWeight: '600',
-                                color: '#2A2828',
+                                fontFamily: "Poppins",
+                                fontWeight: "600",
+                                color: "#2A2828",
                                 mb: 1,
                               }}
                               variant="h6"
                             >
                               {item.name}
                             </Typography>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
                               <Chip
                                 label={`${item.price} GOLD`}
                                 size="small"
                                 sx={{
-                                  backgroundColor: item.price === 0 ? '#e8f5e8' : '#fff3e0',
-                                  color: item.price === 0 ? '#2e7d32' : '#f57c00',
-                                  fontFamily: 'Poppins',
-                                  fontWeight: '600',
+                                  backgroundColor: item.price === 0 ? "#e8f5e8" : "#fff3e0",
+                                  color: item.price === 0 ? "#2e7d32" : "#f57c00",
+                                  fontFamily: "Poppins",
+                                  fontWeight: "600",
                                 }}
                               />
                               {item.tags && (
@@ -657,10 +653,10 @@ export default function Admin ({ user, logout }) {
                                   label="Has Tags"
                                   size="small"
                                   sx={{
-                                    backgroundColor: '#e3f2fd',
-                                    color: '#1976d2',
-                                    fontFamily: 'Poppins',
-                                    fontWeight: '500',
+                                    backgroundColor: "#e3f2fd",
+                                    color: "#1976d2",
+                                    fontFamily: "Poppins",
+                                    fontWeight: "500",
                                   }}
                                 />
                               )}
@@ -668,8 +664,8 @@ export default function Admin ({ user, logout }) {
                             {item.description && (
                               <Typography
                                 sx={{
-                                  fontFamily: 'Poppins',
-                                  color: '#666',
+                                  fontFamily: "Poppins",
+                                  color: "#666",
                                   mb: 1,
                                 }}
                                 variant="body2"
@@ -680,10 +676,10 @@ export default function Admin ({ user, logout }) {
                             {item.note && (
                               <Typography
                                 sx={{
-                                  fontFamily: 'Poppins',
-                                  color: '#888',
-                                  fontSize: '0.85rem',
-                                  fontStyle: 'italic',
+                                  fontFamily: "Poppins",
+                                  color: "#888",
+                                  fontSize: "0.85rem",
+                                  fontStyle: "italic",
                                 }}
                                 variant="body2"
                               >
@@ -691,13 +687,13 @@ export default function Admin ({ user, logout }) {
                               </Typography>
                             )}
                           </Box>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Box sx={{ display: "flex", gap: 1 }}>
                             <IconButton
-                              onClick={() => openEditDialog('item', item)}
+                              onClick={() => openEditDialog("item", item)}
                               sx={{
-                                color: '#ff001e',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(255, 0, 30, 0.1)',
+                                color: "#ff001e",
+                                "&:hover": {
+                                  backgroundColor: "rgba(255, 0, 30, 0.1)",
                                 },
                               }}
                             >
@@ -707,8 +703,8 @@ export default function Admin ({ user, logout }) {
                               color="error"
                               onClick={() => handleDeleteItem(item.id)}
                               sx={{
-                                '&:hover': {
-                                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                "&:hover": {
+                                  backgroundColor: "rgba(244, 67, 54, 0.1)",
                                 },
                               }}
                             >
@@ -730,22 +726,22 @@ export default function Admin ({ user, logout }) {
       <Dialog
         PaperProps={{
           sx: {
-            borderRadius: '40px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 60px 160px rgba(0,0,0,0.25), 0 0 100px rgba(255, 0, 30, 0.2)',
-            border: '1px solid rgba(255,255,255,0.4)',
-            overflow: 'hidden',
-            position: 'relative',
-            maxHeight: '90vh',
-            '&::before': {
+            borderRadius: "40px",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 60px 160px rgba(0,0,0,0.25), 0 0 100px rgba(255, 0, 30, 0.2)",
+            border: "1px solid rgba(255,255,255,0.4)",
+            overflow: "hidden",
+            position: "relative",
+            maxHeight: "90vh",
+            "&::before": {
               content: '""',
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,249,255,0.1) 100%)',
-              pointerEvents: 'none',
+              background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,249,255,0.1) 100%)",
+              pointerEvents: "none",
               zIndex: 0,
             },
           },
@@ -759,18 +755,18 @@ export default function Admin ({ user, logout }) {
       >
         <DialogTitle
           sx={{
-            background: 'linear-gradient(135deg, #ff001e 0%, #d4001a 100%)',
-            color: '#ffffff',
-            fontFamily: 'Poppins',
-            fontWeight: '900',
-            fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2rem' },
-            textAlign: 'center',
+            background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+            color: "#ffffff",
+            fontFamily: "Poppins",
+            fontWeight: "900",
+            fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+            textAlign: "center",
             py: { xs: 3, sm: 4, md: 5 },
             px: { xs: 4, sm: 5, md: 6 },
-            position: 'relative',
-            '&::before': {
+            position: "relative",
+            "&::before": {
               content: '""',
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
@@ -779,32 +775,32 @@ export default function Admin ({ user, logout }) {
                 'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
               opacity: 0.4,
             },
-            '&::after': {
+            "&::after": {
               content: '""',
-              position: 'absolute',
+              position: "absolute",
               bottom: 0,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '60px',
-              height: '4px',
-              background: 'linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.6), rgba(255,255,255,0.3))',
-              borderRadius: '2px',
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "60px",
+              height: "4px",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.6), rgba(255,255,255,0.3))",
+              borderRadius: "2px",
             },
           }}
         >
           <Box alignItems="center" display="flex" justifyContent="center">
             <Typography
               sx={{
-                fontFamily: 'Poppins',
-                fontWeight: '900',
-                fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2rem' },
-                textShadow: '0 4px 8px rgba(0,0,0,0.3)',
-                position: 'relative',
+                fontFamily: "Poppins",
+                fontWeight: "900",
+                fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+                textShadow: "0 4px 8px rgba(0,0,0,0.3)",
+                position: "relative",
                 zIndex: 1,
-                letterSpacing: '-0.02em',
+                letterSpacing: "-0.02em",
               }}
             >
-              {createDialogOpen === 'event' ? '🎉 Create New Event' : '🛍️ Create New Item'}
+              {createDialogOpen === "event" ? "🎉 Create New Event" : "🛍️ Create New Item"}
             </Typography>
           </Box>
         </DialogTitle>
@@ -812,45 +808,45 @@ export default function Admin ({ user, logout }) {
           sx={{
             py: { xs: 4, sm: 5, md: 6 },
             px: { xs: 3, sm: 4, md: 5 },
-            maxHeight: '60vh',
-            overflow: 'auto',
-            '&::-webkit-scrollbar': {
-              width: '8px',
+            maxHeight: "60vh",
+            overflow: "auto",
+            "&::-webkit-scrollbar": {
+              width: "8px",
             },
-            '&::-webkit-scrollbar-track': {
-              background: 'rgba(0,0,0,0.1)',
-              borderRadius: '4px',
+            "&::-webkit-scrollbar-track": {
+              background: "rgba(0,0,0,0.1)",
+              borderRadius: "4px",
             },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(255, 0, 30, 0.3)',
-              borderRadius: '4px',
-              '&:hover': {
-                background: 'rgba(255, 0, 30, 0.5)',
+            "&::-webkit-scrollbar-thumb": {
+              background: "rgba(255, 0, 30, 0.3)",
+              borderRadius: "4px",
+              "&:hover": {
+                background: "rgba(255, 0, 30, 0.5)",
               },
             },
           }}
         >
-          {createDialogOpen === 'event' ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+          {createDialogOpen === "event" ? (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
               <TextField
                 fullWidth
                 label="Event Name"
                 onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
                 required
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
@@ -861,19 +857,19 @@ export default function Admin ({ user, logout }) {
                 label="Category"
                 onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
@@ -886,20 +882,20 @@ export default function Admin ({ user, logout }) {
                 multiline
                 onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  gridColumn: { xs: '1', md: '1 / -1' },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  gridColumn: { xs: "1", md: "1 / -1" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
@@ -912,19 +908,19 @@ export default function Admin ({ user, logout }) {
                 onChange={(e) => setNewEvent({ ...newEvent, start_datetime: e.target.value })}
                 required
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
@@ -937,19 +933,19 @@ export default function Admin ({ user, logout }) {
                 label="End Date & Time"
                 onChange={(e) => setNewEvent({ ...newEvent, end_datetime: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
@@ -959,45 +955,45 @@ export default function Admin ({ user, logout }) {
               <TextField
                 fullWidth
                 label="Price (GOLD)"
-                onChange={(e) => setNewEvent({ ...newEvent, price: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+                onChange={(e) => setNewEvent({ ...newEvent, price: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
                 type="number"
-                value={newEvent.price === undefined ? '' : newEvent.price}
+                value={newEvent.price === undefined ? "" : newEvent.price}
               />
               <TextField
                 fullWidth
                 label="Location"
                 onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
@@ -1006,26 +1002,26 @@ export default function Admin ({ user, logout }) {
               <TextField
                 fullWidth
                 label="Seats Available"
-                onChange={(e) => setNewEvent({ ...newEvent, seats_available: e.target.value === '' ? 0 : parseInt(e.target.value, 10) })}
+                onChange={(e) => setNewEvent({ ...newEvent, seats_available: e.target.value === "" ? 0 : parseInt(e.target.value, 10) })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
                 type="number"
-                value={newEvent.seats_available === undefined ? '' : newEvent.seats_available}
+                value={newEvent.seats_available === undefined ? "" : newEvent.seats_available}
               />
               <TextField
                 SelectProps={{ native: true }}
@@ -1034,23 +1030,23 @@ export default function Admin ({ user, logout }) {
                 onChange={(e) => setNewEvent({ ...newEvent, status: e.target.value })}
                 select
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={newEvent.status || 'upcoming'}
+                value={newEvent.status || "upcoming"}
               >
                 <option value="upcoming">Upcoming</option>
                 <option value="active">Active</option>
@@ -1062,20 +1058,20 @@ export default function Admin ({ user, logout }) {
                 label="Image URL"
                 onChange={(e) => setNewEvent({ ...newEvent, image_url: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  gridColumn: { xs: '1', md: '1 / -1' },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  gridColumn: { xs: "1", md: "1 / -1" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
@@ -1087,20 +1083,20 @@ export default function Admin ({ user, logout }) {
                 onChange={(e) => setNewEvent({ ...newEvent, tags: e.target.value })}
                 placeholder="tag1, tag2, tag3"
                 sx={{
-                  fontFamily: 'Poppins',
-                  gridColumn: { xs: '1', md: '1 / -1' },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  gridColumn: { xs: "1", md: "1 / -1" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
@@ -1108,27 +1104,27 @@ export default function Admin ({ user, logout }) {
               />
             </Box>
           ) : (
-            createDialogOpen === 'item' && (
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+            createDialogOpen === "item" && (
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
                 <TextField
                   fullWidth
                   label="Item Name"
                   onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                   required
                   sx={{
-                    fontFamily: 'Poppins',
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '16px',
-                      fontFamily: 'Poppins',
-                      '& fieldset': {
-                        borderColor: 'rgba(0,0,0,0.2)',
-                        borderWidth: '2px',
+                    fontFamily: "Poppins",
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "16px",
+                      fontFamily: "Poppins",
+                      "& fieldset": {
+                        borderColor: "rgba(0,0,0,0.2)",
+                        borderWidth: "2px",
                       },
-                      '&:hover fieldset': {
-                        borderColor: '#ff001e',
+                      "&:hover fieldset": {
+                        borderColor: "#ff001e",
                       },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#ff001e',
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#ff001e",
                       },
                     },
                   }}
@@ -1137,26 +1133,26 @@ export default function Admin ({ user, logout }) {
                 <TextField
                   fullWidth
                   label="Price (GOLD)"
-                  onChange={(e) => setNewItem({ ...newItem, price: e.target.value === '' ? 0.0 : parseFloat(e.target.value) })}
+                  onChange={(e) => setNewItem({ ...newItem, price: e.target.value === "" ? 0.0 : parseFloat(e.target.value) })}
                   sx={{
-                    fontFamily: 'Poppins',
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '16px',
-                      fontFamily: 'Poppins',
-                      '& fieldset': {
-                        borderColor: 'rgba(0,0,0,0.2)',
-                        borderWidth: '2px',
+                    fontFamily: "Poppins",
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "16px",
+                      fontFamily: "Poppins",
+                      "& fieldset": {
+                        borderColor: "rgba(0,0,0,0.2)",
+                        borderWidth: "2px",
                       },
-                      '&:hover fieldset': {
-                        borderColor: '#ff001e',
+                      "&:hover fieldset": {
+                        borderColor: "#ff001e",
                       },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#ff001e',
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#ff001e",
                       },
                     },
                   }}
                   type="number"
-                  value={newItem.price === undefined ? '' : newItem.price}
+                  value={newItem.price === undefined ? "" : newItem.price}
                 />
                 <TextField
                   fullWidth
@@ -1165,20 +1161,20 @@ export default function Admin ({ user, logout }) {
                   multiline
                   onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                   sx={{
-                    fontFamily: 'Poppins',
-                    gridColumn: { xs: '1', md: '1 / -1' },
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '16px',
-                      fontFamily: 'Poppins',
-                      '& fieldset': {
-                        borderColor: 'rgba(0,0,0,0.2)',
-                        borderWidth: '2px',
+                    fontFamily: "Poppins",
+                    gridColumn: { xs: "1", md: "1 / -1" },
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "16px",
+                      fontFamily: "Poppins",
+                      "& fieldset": {
+                        borderColor: "rgba(0,0,0,0.2)",
+                        borderWidth: "2px",
                       },
-                      '&:hover fieldset': {
-                        borderColor: '#ff001e',
+                      "&:hover fieldset": {
+                        borderColor: "#ff001e",
                       },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#ff001e',
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#ff001e",
                       },
                     },
                   }}
@@ -1189,19 +1185,19 @@ export default function Admin ({ user, logout }) {
                   label="Image URL"
                   onChange={(e) => setNewItem({ ...newItem, image_url: e.target.value })}
                   sx={{
-                    fontFamily: 'Poppins',
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '16px',
-                      fontFamily: 'Poppins',
-                      '& fieldset': {
-                        borderColor: 'rgba(0,0,0,0.2)',
-                        borderWidth: '2px',
+                    fontFamily: "Poppins",
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "16px",
+                      fontFamily: "Poppins",
+                      "& fieldset": {
+                        borderColor: "rgba(0,0,0,0.2)",
+                        borderWidth: "2px",
                       },
-                      '&:hover fieldset': {
-                        borderColor: '#ff001e',
+                      "&:hover fieldset": {
+                        borderColor: "#ff001e",
                       },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#ff001e',
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#ff001e",
                       },
                     },
                   }}
@@ -1213,19 +1209,19 @@ export default function Admin ({ user, logout }) {
                   onChange={(e) => setNewItem({ ...newItem, tags: e.target.value })}
                   placeholder="tag1, tag2, tag3"
                   sx={{
-                    fontFamily: 'Poppins',
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '16px',
-                      fontFamily: 'Poppins',
-                      '& fieldset': {
-                        borderColor: 'rgba(0,0,0,0.2)',
-                        borderWidth: '2px',
+                    fontFamily: "Poppins",
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "16px",
+                      fontFamily: "Poppins",
+                      "& fieldset": {
+                        borderColor: "rgba(0,0,0,0.2)",
+                        borderWidth: "2px",
                       },
-                      '&:hover fieldset': {
-                        borderColor: '#ff001e',
+                      "&:hover fieldset": {
+                        borderColor: "#ff001e",
                       },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#ff001e',
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#ff001e",
                       },
                     },
                   }}
@@ -1239,20 +1235,20 @@ export default function Admin ({ user, logout }) {
                   onChange={(e) => setNewItem({ ...newItem, note: e.target.value })}
                   placeholder="Internal notes or additional information"
                   sx={{
-                    fontFamily: 'Poppins',
-                    gridColumn: { xs: '1', md: '1 / -1' },
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '16px',
-                      fontFamily: 'Poppins',
-                      '& fieldset': {
-                        borderColor: 'rgba(0,0,0,0.2)',
-                        borderWidth: '2px',
+                    fontFamily: "Poppins",
+                    gridColumn: { xs: "1", md: "1 / -1" },
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "16px",
+                      fontFamily: "Poppins",
+                      "& fieldset": {
+                        borderColor: "rgba(0,0,0,0.2)",
+                        borderWidth: "2px",
                       },
-                      '&:hover fieldset': {
-                        borderColor: '#ff001e',
+                      "&:hover fieldset": {
+                        borderColor: "#ff001e",
                       },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#ff001e',
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#ff001e",
                       },
                     },
                   }}
@@ -1264,7 +1260,7 @@ export default function Admin ({ user, logout }) {
         </Box>
         <DialogActions
           sx={{
-            justifyContent: 'center',
+            justifyContent: "center",
             pb: { xs: 4, sm: 5, md: 6 },
             pt: { xs: 2, sm: 3, md: 4 },
             px: { xs: 3, sm: 4, md: 5 },
@@ -1274,17 +1270,17 @@ export default function Admin ({ user, logout }) {
           <Button
             onClick={() => setCreateDialogOpen(false)}
             sx={{
-              fontFamily: 'Poppins',
-              textTransform: 'none',
-              borderRadius: '12px',
+              fontFamily: "Poppins",
+              textTransform: "none",
+              borderRadius: "12px",
               px: { xs: 3, sm: 4 },
               py: { xs: 1, sm: 1.2 },
-              fontSize: { xs: '0.9rem', sm: '1rem' },
-              border: '2px solid #e0e0e0',
-              color: '#666',
-              '&:hover': {
-                borderColor: '#ff001e',
-                color: '#ff001e',
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              border: "2px solid #e0e0e0",
+              color: "#666",
+              "&:hover": {
+                borderColor: "#ff001e",
+                color: "#ff001e",
               },
             }}
           >
@@ -1292,7 +1288,7 @@ export default function Admin ({ user, logout }) {
           </Button>
           <Button
             onClick={async () => {
-              if (createDialogOpen === 'event') {
+              if (createDialogOpen === "event") {
                 await handleCreateEvent();
               } else {
                 await handleCreateItem();
@@ -1300,20 +1296,20 @@ export default function Admin ({ user, logout }) {
               setCreateDialogOpen(false);
             }}
             sx={{
-              background: 'linear-gradient(45deg, #ff001e, #d4001a)',
-              borderRadius: '12px',
-              textTransform: 'none',
-              fontFamily: 'Poppins',
-              fontWeight: '600',
+              background: "linear-gradient(45deg, #ff001e, #d4001a)",
+              borderRadius: "12px",
+              textTransform: "none",
+              fontFamily: "Poppins",
+              fontWeight: "600",
               px: { xs: 3, sm: 4 },
               py: { xs: 1, sm: 1.2 },
-              fontSize: { xs: '0.9rem', sm: '1rem' },
-              boxShadow: '0 4px 12px rgba(255, 0, 30, 0.3)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #d4001a, #b30017)',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 6px 20px rgba(255, 0, 30, 0.4)',
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                background: "linear-gradient(45deg, #d4001a, #b30017)",
+                transform: "translateY(-2px)",
+                boxShadow: "0 6px 20px rgba(255, 0, 30, 0.4)",
               },
             }}
             variant="contained"
@@ -1327,22 +1323,22 @@ export default function Admin ({ user, logout }) {
       <Dialog
         PaperProps={{
           sx: {
-            borderRadius: '40px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 60px 160px rgba(0,0,0,0.25), 0 0 100px rgba(255, 0, 30, 0.2)',
-            border: '1px solid rgba(255,255,255,0.4)',
-            overflow: 'hidden',
-            position: 'relative',
-            maxHeight: '90vh',
-            '&::before': {
+            borderRadius: "40px",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 60px 160px rgba(0,0,0,0.25), 0 0 100px rgba(255, 0, 30, 0.2)",
+            border: "1px solid rgba(255,255,255,0.4)",
+            overflow: "hidden",
+            position: "relative",
+            maxHeight: "90vh",
+            "&::before": {
               content: '""',
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,249,255,0.1) 100%)',
-              pointerEvents: 'none',
+              background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,249,255,0.1) 100%)",
+              pointerEvents: "none",
               zIndex: 0,
             },
           },
@@ -1356,18 +1352,18 @@ export default function Admin ({ user, logout }) {
       >
         <DialogTitle
           sx={{
-            background: 'linear-gradient(135deg, #ff001e 0%, #d4001a 100%)',
-            color: '#ffffff',
-            fontFamily: 'Poppins',
-            fontWeight: '900',
-            fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2rem' },
-            textAlign: 'center',
+            background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+            color: "#ffffff",
+            fontFamily: "Poppins",
+            fontWeight: "900",
+            fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+            textAlign: "center",
             py: { xs: 3, sm: 4, md: 5 },
             px: { xs: 4, sm: 5, md: 6 },
-            position: 'relative',
-            '&::before': {
+            position: "relative",
+            "&::before": {
               content: '""',
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
@@ -1376,32 +1372,32 @@ export default function Admin ({ user, logout }) {
                 'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
               opacity: 0.4,
             },
-            '&::after': {
+            "&::after": {
               content: '""',
-              position: 'absolute',
+              position: "absolute",
               bottom: 0,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '60px',
-              height: '4px',
-              background: 'linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.6), rgba(255,255,255,0.3))',
-              borderRadius: '2px',
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "60px",
+              height: "4px",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.6), rgba(255,255,255,0.3))",
+              borderRadius: "2px",
             },
           }}
         >
           <Box alignItems="center" display="flex" justifyContent="center">
             <Typography
               sx={{
-                fontFamily: 'Poppins',
-                fontWeight: '900',
-                fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2rem' },
-                textShadow: '0 4px 8px rgba(0,0,0,0.3)',
-                position: 'relative',
+                fontFamily: "Poppins",
+                fontWeight: "900",
+                fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+                textShadow: "0 4px 8px rgba(0,0,0,0.3)",
+                position: "relative",
                 zIndex: 1,
-                letterSpacing: '-0.02em',
+                letterSpacing: "-0.02em",
               }}
             >
-              {editType === 'event' ? '✏️ Edit Event' : '✏️ Edit Item'}
+              {editType === "event" ? "✏️ Edit Event" : "✏️ Edit Item"}
             </Typography>
           </Box>
         </DialogTitle>
@@ -1409,72 +1405,72 @@ export default function Admin ({ user, logout }) {
           sx={{
             py: { xs: 4, sm: 5, md: 6 },
             px: { xs: 3, sm: 4, md: 5 },
-            maxHeight: '60vh',
-            overflow: 'auto',
-            '&::-webkit-scrollbar': {
-              width: '8px',
+            maxHeight: "60vh",
+            overflow: "auto",
+            "&::-webkit-scrollbar": {
+              width: "8px",
             },
-            '&::-webkit-scrollbar-track': {
-              background: 'rgba(0,0,0,0.1)',
-              borderRadius: '4px',
+            "&::-webkit-scrollbar-track": {
+              background: "rgba(0,0,0,0.1)",
+              borderRadius: "4px",
             },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(255, 0, 30, 0.3)',
-              borderRadius: '4px',
-              '&:hover': {
-                background: 'rgba(255, 0, 30, 0.5)',
+            "&::-webkit-scrollbar-thumb": {
+              background: "rgba(255, 0, 30, 0.3)",
+              borderRadius: "4px",
+              "&:hover": {
+                background: "rgba(255, 0, 30, 0.5)",
               },
             },
           }}
         >
-          {editType === 'event' && editEvent && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+          {editType === "event" && editEvent && (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
               <TextField
                 fullWidth
                 label="Event Name"
                 onChange={(e) => setEditEvent({ ...editEvent, name: e.target.value })}
                 required
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editEvent.name || ''}
+                value={editEvent.name || ""}
               />
               <TextField
                 fullWidth
                 label="Category"
                 onChange={(e) => setEditEvent({ ...editEvent, category: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editEvent.category || ''}
+                value={editEvent.category || ""}
               />
               <TextField
                 fullWidth
@@ -1483,24 +1479,24 @@ export default function Admin ({ user, logout }) {
                 multiline
                 onChange={(e) => setEditEvent({ ...editEvent, description: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  gridColumn: { xs: '1', md: '1 / -1' },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  gridColumn: { xs: "1", md: "1 / -1" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editEvent.description || ''}
+                value={editEvent.description || ""}
               />
               <TextField
                 InputLabelProps={{ shrink: true }}
@@ -1509,24 +1505,24 @@ export default function Admin ({ user, logout }) {
                 onChange={(e) => setEditEvent({ ...editEvent, start_datetime: e.target.value })}
                 required
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
                 type="datetime-local"
-                value={editEvent.start_datetime || ''}
+                value={editEvent.start_datetime || ""}
               />
               <TextField
                 InputLabelProps={{ shrink: true }}
@@ -1534,95 +1530,95 @@ export default function Admin ({ user, logout }) {
                 label="End Date & Time"
                 onChange={(e) => setEditEvent({ ...editEvent, end_datetime: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
                 type="datetime-local"
-                value={editEvent.end_datetime || ''}
+                value={editEvent.end_datetime || ""}
               />
               <TextField
                 fullWidth
                 label="Price (GOLD)"
-                onChange={(e) => setEditEvent({ ...editEvent, price: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+                onChange={(e) => setEditEvent({ ...editEvent, price: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
                 type="number"
-                value={editEvent.price === undefined ? '' : editEvent.price}
+                value={editEvent.price === undefined ? "" : editEvent.price}
               />
               <TextField
                 fullWidth
                 label="Location"
                 onChange={(e) => setEditEvent({ ...editEvent, location: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editEvent.location || ''}
+                value={editEvent.location || ""}
               />
               <TextField
                 fullWidth
                 label="Seats Available"
-                onChange={(e) => setEditEvent({ ...editEvent, seats_available: e.target.value === '' ? 0 : parseInt(e.target.value, 10) })}
+                onChange={(e) => setEditEvent({ ...editEvent, seats_available: e.target.value === "" ? 0 : parseInt(e.target.value, 10) })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
                 type="number"
-                value={editEvent.seats_available === undefined ? '' : editEvent.seats_available}
+                value={editEvent.seats_available === undefined ? "" : editEvent.seats_available}
               />
               <TextField
                 SelectProps={{ native: true }}
@@ -1631,23 +1627,23 @@ export default function Admin ({ user, logout }) {
                 onChange={(e) => setEditEvent({ ...editEvent, status: e.target.value })}
                 select
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editEvent.status || 'upcoming'}
+                value={editEvent.status || "upcoming"}
               >
                 <option value="upcoming">Upcoming</option>
                 <option value="active">Active</option>
@@ -1659,24 +1655,24 @@ export default function Admin ({ user, logout }) {
                 label="Image URL"
                 onChange={(e) => setEditEvent({ ...editEvent, image_url: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  gridColumn: { xs: '1', md: '1 / -1' },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  gridColumn: { xs: "1", md: "1 / -1" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editEvent.image_url || ''}
+                value={editEvent.image_url || ""}
               />
               <TextField
                 fullWidth
@@ -1684,76 +1680,76 @@ export default function Admin ({ user, logout }) {
                 onChange={(e) => setEditEvent({ ...editEvent, tags: e.target.value })}
                 placeholder="tag1, tag2, tag3"
                 sx={{
-                  fontFamily: 'Poppins',
-                  gridColumn: { xs: '1', md: '1 / -1' },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  gridColumn: { xs: "1", md: "1 / -1" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editEvent.tags || ''}
+                value={editEvent.tags || ""}
               />
             </Box>
           )}
-          {editType === 'item' && editItem && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+          {editType === "item" && editItem && (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
               <TextField
                 fullWidth
                 label="Item Name"
                 onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
                 required
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editItem.name || ''}
+                value={editItem.name || ""}
               />
               <TextField
                 fullWidth
                 label="Price (GOLD)"
-                onChange={(e) => setEditItem({ ...editItem, price: e.target.value === '' ? 0.0 : parseFloat(e.target.value) })}
+                onChange={(e) => setEditItem({ ...editItem, price: e.target.value === "" ? 0.0 : parseFloat(e.target.value) })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
                 type="number"
-                value={editItem.price === undefined ? '' : editItem.price}
+                value={editItem.price === undefined ? "" : editItem.price}
               />
               <TextField
                 fullWidth
@@ -1762,47 +1758,47 @@ export default function Admin ({ user, logout }) {
                 multiline
                 onChange={(e) => setEditItem({ ...editItem, description: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  gridColumn: { xs: '1', md: '1 / -1' },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  gridColumn: { xs: "1", md: "1 / -1" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editItem.description || ''}
+                value={editItem.description || ""}
               />
               <TextField
                 fullWidth
                 label="Image URL"
                 onChange={(e) => setEditItem({ ...editItem, image_url: e.target.value })}
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editItem.image_url || ''}
+                value={editItem.image_url || ""}
               />
               <TextField
                 fullWidth
@@ -1810,23 +1806,23 @@ export default function Admin ({ user, logout }) {
                 onChange={(e) => setEditItem({ ...editItem, tags: e.target.value })}
                 placeholder="tag1, tag2, tag3"
                 sx={{
-                  fontFamily: 'Poppins',
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editItem.tags || ''}
+                value={editItem.tags || ""}
               />
               <TextField
                 fullWidth
@@ -1836,31 +1832,31 @@ export default function Admin ({ user, logout }) {
                 onChange={(e) => setEditItem({ ...editItem, note: e.target.value })}
                 placeholder="Internal notes or additional information"
                 sx={{
-                  fontFamily: 'Poppins',
-                  gridColumn: { xs: '1', md: '1 / -1' },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '16px',
-                    fontFamily: 'Poppins',
-                    '& fieldset': {
-                      borderColor: 'rgba(0,0,0,0.2)',
-                      borderWidth: '2px',
+                  fontFamily: "Poppins",
+                  gridColumn: { xs: "1", md: "1 / -1" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "16px",
+                    fontFamily: "Poppins",
+                    "& fieldset": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      borderWidth: "2px",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#ff001e',
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#ff001e',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
                     },
                   },
                 }}
-                value={editItem.note || ''}
+                value={editItem.note || ""}
               />
             </Box>
           )}
         </Box>
         <DialogActions
           sx={{
-            justifyContent: 'center',
+            justifyContent: "center",
             pb: { xs: 4, sm: 5, md: 6 },
             pt: { xs: 2, sm: 3, md: 4 },
             px: { xs: 3, sm: 4, md: 5 },
@@ -1870,17 +1866,17 @@ export default function Admin ({ user, logout }) {
           <Button
             onClick={closeEditDialog}
             sx={{
-              fontFamily: 'Poppins',
-              textTransform: 'none',
-              borderRadius: '12px',
+              fontFamily: "Poppins",
+              textTransform: "none",
+              borderRadius: "12px",
               px: { xs: 3, sm: 4 },
               py: { xs: 1, sm: 1.2 },
-              fontSize: { xs: '0.9rem', sm: '1rem' },
-              border: '2px solid #e0e0e0',
-              color: '#666',
-              '&:hover': {
-                borderColor: '#ff001e',
-                color: '#ff001e',
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              border: "2px solid #e0e0e0",
+              color: "#666",
+              "&:hover": {
+                borderColor: "#ff001e",
+                color: "#ff001e",
               },
             }}
           >
@@ -1889,20 +1885,20 @@ export default function Admin ({ user, logout }) {
           <Button
             onClick={handleEditSave}
             sx={{
-              background: 'linear-gradient(45deg, #ff001e, #d4001a)',
-              borderRadius: '12px',
-              textTransform: 'none',
-              fontFamily: 'Poppins',
-              fontWeight: '600',
+              background: "linear-gradient(45deg, #ff001e, #d4001a)",
+              borderRadius: "12px",
+              textTransform: "none",
+              fontFamily: "Poppins",
+              fontWeight: "600",
               px: { xs: 3, sm: 4 },
               py: { xs: 1, sm: 1.2 },
-              fontSize: { xs: '0.9rem', sm: '1rem' },
-              boxShadow: '0 4px 12px rgba(255, 0, 30, 0.3)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #d4001a, #b30017)',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 6px 20px rgba(255, 0, 30, 0.4)',
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+              boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                background: "linear-gradient(45deg, #d4001a, #b30017)",
+                transform: "translateY(-2px)",
+                boxShadow: "0 6px 20px rgba(255, 0, 30, 0.4)",
               },
             }}
             variant="contained"

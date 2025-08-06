@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Navbar } from "../components";
 import { fetchEvents, fetchAvailableMonths, toggleEventEnrollment } from "../api";
 import { Paper, Box, Button, Typography, Chip, Dialog, DialogActions, DialogTitle, Slide, TextField } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -98,8 +97,6 @@ function Events({ logout }) {
 
   return (
     <Box sx={{ minHeight: "100vh", backgroundColor: "#fafafa" }}>
-      <Navbar logout={logout} />
-
       {/* Hero Section */}
       <Box
         sx={{

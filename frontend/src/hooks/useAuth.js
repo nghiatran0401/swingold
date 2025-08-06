@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { getUserFromStorage, saveUserToStorage, removeUserFromStorage } from '../utils';
-import { loginUser } from '../api';
+import { useState, useEffect } from "react";
+import { getUserFromStorage, saveUserToStorage, removeUserFromStorage } from "../utils";
+import { loginUser } from "../api";
 
 /**
  * Custom hook for authentication state management
@@ -43,7 +43,7 @@ export const useAuth = () => {
   };
 
   /**
-   * Logout function
+   * Logout function - clears localStorage
    */
   const logout = () => {
     removeUserFromStorage();

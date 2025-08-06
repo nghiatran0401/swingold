@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useWallet } from "../hooks/useWallet";
+import { ethers } from "ethers";
 
 const WalletContext = createContext();
 
@@ -11,7 +12,7 @@ export const useWalletContext = () => {
   return context;
 };
 
-export const WalletProvider = ({ children }) => {
+export const WalletProvider = ({ children, user }) => {
   const wallet = useWallet();
   const [walletDisplayInfo, setWalletDisplayInfo] = useState({
     isConnected: false,
@@ -31,18 +32,26 @@ export const WalletProvider = ({ children }) => {
 
     const formatTokenBalance = (balance) => {
       if (!balance) return "0";
-      return wallet.formatTokenBalance ? wallet.formatTokenBalance(balance) : "0";
+      try {
+        return ethers.formatUnits(balance, 18);
+      } catch (error) {
+        return "0";
+      }
     };
 
+    // Check if user is authenticated and wallet is connected
+    const isUserAuthenticated = !!user?.id;
+    const isWalletConnected = wallet.isConnected && isUserAuthenticated;
+
     setWalletDisplayInfo({
-      isConnected: wallet.isConnected,
+      isConnected: isWalletConnected,
       address: wallet.account,
       formattedAddress: formatAddress(wallet.account),
       tokenBalance: wallet.tokenBalance,
       formattedTokenBalance: formatTokenBalance(wallet.tokenBalance),
       isLoading: wallet.isLoadingBalance,
     });
-  }, [wallet.isConnected, wallet.account, wallet.tokenBalance, wallet.isLoadingBalance]);
+  }, [user?.id, wallet.isConnected, wallet.account, wallet.tokenBalance, wallet.isLoadingBalance]);
 
   const value = {
     ...wallet,

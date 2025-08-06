@@ -13,11 +13,6 @@ export const useWallet = () => {
   const [tokenBalance, setTokenBalance] = useState(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
-  // Check if user manually disconnected (persisted in localStorage)
-  const isManuallyDisconnected = () => {
-    return localStorage.getItem("swingold_manually_disconnected") === "true";
-  };
-
   // Contract addresses from environment
   const SWINGOLD_ADDRESS = process.env.REACT_APP_SWINGOLD_ADDRESS;
   const TRADE_MANAGER_ADDRESS = process.env.REACT_APP_TRADE_MANAGER_ADDRESS;
@@ -40,9 +35,6 @@ export const useWallet = () => {
 
   // Handle account changes
   const handleAccountsChanged = async (accounts) => {
-    // Don't auto-connect if user manually disconnected
-    if (isManuallyDisconnected()) return;
-
     if (accounts.length === 0) {
       // MetaMask is locked or the user has no accounts
       setAccount(null);
@@ -59,8 +51,17 @@ export const useWallet = () => {
 
   // Handle chain changes
   const handleChainChanged = () => {
-    // Reload the page when chain changes
-    window.location.reload();
+    // Update chain ID when chain changes
+    if (provider) {
+      provider
+        .getNetwork()
+        .then((network) => {
+          setChainId(network.chainId.toString());
+        })
+        .catch((err) => {
+          console.error("Error getting network:", err);
+        });
+    }
   };
 
   // Handle disconnect
@@ -69,6 +70,17 @@ export const useWallet = () => {
     setSigner(null);
     setTokenBalance(null);
     setChainId(null);
+  };
+
+  // Clear local wallet state without deleting from database
+  const clearLocalWalletState = () => {
+    setAccount(null);
+    setSigner(null);
+    setTokenBalance(null);
+    setChainId(null);
+    setError(null);
+    setIsConnecting(false);
+    setIsLoadingBalance(false);
   };
 
   // Setup event listeners - only run once on mount
@@ -82,19 +94,25 @@ export const useWallet = () => {
       // Set up event listeners
       window.ethereum.on("accountsChanged", handleAccountsChanged);
       window.ethereum.on("chainChanged", handleChainChanged);
-      window.ethereum.on("disconnect", handleDisconnect);
 
-      // Check if already connected - but only if not manually disconnected
+      // Check if already connected
       const checkConnection = async () => {
-        if (isManuallyDisconnected()) return;
-
         try {
           const accounts = await window.ethereum.request({ method: "eth_accounts" });
           if (accounts.length > 0) {
-            await handleAccountsChanged(accounts);
-            const network = await newProvider.getNetwork();
-            setChainId(network.chainId.toString());
+            setAccount(accounts[0]);
+            const newSigner = await newProvider.getSigner();
+            setSigner(newSigner);
+
+            // Wait a bit for provider to be fully initialized
+            setTimeout(() => {
+              loadTokenBalance(accounts[0]);
+            }, 100);
           }
+
+          // Get current chain ID
+          const network = await newProvider.getNetwork();
+          setChainId(network.chainId.toString());
         } catch (err) {
           console.error("Error checking connection:", err);
         }
@@ -102,25 +120,24 @@ export const useWallet = () => {
 
       checkConnection();
     } catch (err) {
-      setError(err.message);
+      console.error("Error initializing provider:", err);
     }
 
-    // Cleanup event listeners
+    // Cleanup function
     return () => {
       if (window.ethereum) {
         window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
         window.ethereum.removeListener("chainChanged", handleChainChanged);
-        window.ethereum.removeListener("disconnect", handleDisconnect);
       }
     };
-  }, []); // Empty dependency array - only run once
+  }, []);
 
-  // Load token balance when account changes
+  // Add effect to reload balance when provider changes
   useEffect(() => {
-    if (account && SWINGOLD_ADDRESS && provider) {
-      loadTokenBalance();
+    if (provider && account && SWINGOLD_ADDRESS) {
+      loadTokenBalance(account);
     }
-  }, [account, SWINGOLD_ADDRESS, provider]);
+  }, [provider, account, SWINGOLD_ADDRESS]);
 
   // Connect wallet
   const connect = async () => {
@@ -131,49 +148,37 @@ export const useWallet = () => {
     setIsConnecting(true);
     setError(null);
 
-    // Clear manual disconnect flag when user actively connects
-    localStorage.removeItem("swingold_manually_disconnected");
-
     try {
       // Request account access
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
 
-      if (!accounts || accounts.length === 0) {
-        throw new Error("No accounts found. Please connect your MetaMask wallet.");
+      if (accounts.length === 0) {
+        throw new Error("No accounts found. Please unlock MetaMask.");
       }
 
-      // Initialize provider if not already done
-      const newProvider = provider || initializeProvider();
+      const connectedAccount = accounts[0];
 
-      // Get signer
+      // Initialize provider and signer
+      const newProvider = initializeProvider();
       const newSigner = await newProvider.getSigner();
-      const signerAddress = await newSigner.getAddress();
 
-      // Verify the signer address matches the selected address
-      if (signerAddress.toLowerCase() !== accounts[0].toLowerCase()) {
-        throw new Error("Address mismatch. Please try connecting again.");
-      }
-
-      // Get network information
-      const network = await newProvider.getNetwork();
-
-      // Update state
-      setAccount(accounts[0]);
+      // Set state
+      setAccount(connectedAccount);
       setSigner(newSigner);
+
+      // Get network info
+      const network = await newProvider.getNetwork();
       setChainId(network.chainId.toString());
 
-      return {
-        address: accounts[0],
-        chainId: network.chainId.toString(),
-        connected: true,
-        connectedAt: new Date().toISOString(),
-      };
+      // Load token balance
+      await loadTokenBalance(connectedAccount);
+
+      return true;
     } catch (err) {
-      const errorMessage = err.code === 4001 ? "Connection rejected by user." : err.message || "Failed to connect wallet.";
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      setError(err.message);
+      throw err;
     } finally {
       setIsConnecting(false);
     }
@@ -182,184 +187,222 @@ export const useWallet = () => {
   // Disconnect wallet
   const disconnect = async () => {
     try {
-      // Set manual disconnect flag in localStorage to persist across page refreshes
-      localStorage.setItem("swingold_manually_disconnected", "true");
-
-      // Try to properly disconnect from MetaMask
-      if (window.ethereum) {
-        try {
-          // Method 1: Try to disconnect using wallet_disconnect (if supported)
-          await window.ethereum.request({
-            method: "wallet_disconnect",
-          });
-        } catch (e) {
-          // Method 2: Try to revoke permissions
-          try {
-            await window.ethereum.request({
-              method: "wallet_revokePermissions",
-              params: [{ eth_accounts: {} }],
-            });
-          } catch (e2) {
-            // Method 3: Just clear local state if MetaMask methods fail
-            console.log("MetaMask disconnect methods not supported, clearing local state only");
-          }
-        }
-      }
-
       // Clear local state
-      setAccount(null);
-      setSigner(null);
-      setTokenBalance(null);
-      setChainId(null);
-      setError(null);
-    } catch (error) {
-      console.log("Disconnect error:", error);
-      // Even if disconnect fails, we've set the localStorage flag and cleared local state
+      clearLocalWalletState();
+
+      // Note: MetaMask doesn't have a disconnect method
+      // The wallet remains connected to the site until user manually disconnects
+      return true;
+    } catch (err) {
+      setError(err.message);
+      throw err;
     }
   };
 
-  // Clear disconnect state (useful for debugging or manual reset)
-  const clearDisconnectState = () => {
-    localStorage.removeItem("swingold_manually_disconnected");
-  };
-
-  // Load token balance
-  const loadTokenBalance = async () => {
-    if (!account || !SWINGOLD_ADDRESS || !provider) return;
+  // Load token balance for an address
+  const loadTokenBalance = async (address = null) => {
+    const targetAddress = address || account;
+    if (!targetAddress || !SWINGOLD_ADDRESS) return;
 
     setIsLoadingBalance(true);
-    try {
-      const tokenContract = new ethers.Contract(SWINGOLD_ADDRESS, SwingoldABI, provider);
-      const balance = await tokenContract.balanceOf(account);
-      setTokenBalance(balance);
-    } catch (err) {
-      console.error("Failed to load token balance:", err);
-      setTokenBalance(null);
-    } finally {
-      setIsLoadingBalance(false);
-    }
+
+    const attemptLoadBalance = async (retryCount = 0) => {
+      try {
+        // Wait a bit if provider is not ready
+        if (!provider && typeof window !== "undefined" && window.ethereum) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+
+        const balance = await getTokenBalance(targetAddress);
+        if (balance !== null) {
+          setTokenBalance(balance);
+          return;
+        }
+
+        // Retry once if balance is null and we haven't retried yet
+        if (balance === null && retryCount === 0) {
+          console.log("Balance loading failed, retrying...");
+          setTimeout(() => attemptLoadBalance(1), 500);
+        }
+      } catch (err) {
+        console.error("Error loading token balance:", err);
+
+        // Retry once if we haven't retried yet
+        if (retryCount === 0) {
+          console.log("Balance loading failed, retrying...");
+          setTimeout(() => attemptLoadBalance(1), 500);
+        } else {
+          setTokenBalance(null);
+        }
+      }
+    };
+
+    await attemptLoadBalance();
+    setIsLoadingBalance(false);
   };
 
-  // Get token balance for any address
+  // Get token balance for an address
   const getTokenBalance = async (address = null) => {
     const targetAddress = address || account;
-    if (!targetAddress || !SWINGOLD_ADDRESS || !provider) {
-      throw new Error("No address, contract, or provider available");
-    }
+    if (!targetAddress || !SWINGOLD_ADDRESS) return null;
 
-    const tokenContract = new ethers.Contract(SWINGOLD_ADDRESS, SwingoldABI, provider);
-    return await tokenContract.balanceOf(targetAddress);
+    try {
+      const contract = getTokenContract();
+      const balance = await contract.balanceOf(targetAddress);
+      return balance.toString();
+    } catch (err) {
+      console.error("Error getting token balance:", err);
+      return null;
+    }
   };
 
   // Get token contract instance
   const getTokenContract = () => {
-    if (!SWINGOLD_ADDRESS) throw new Error("Token contract address not configured");
-    if (!signer) throw new Error("No signer available. Please connect your wallet.");
-    return new ethers.Contract(SWINGOLD_ADDRESS, SwingoldABI, signer);
+    if (!SWINGOLD_ADDRESS) return null;
+
+    // If provider is not available, create a new one
+    const currentProvider = provider || (typeof window !== "undefined" && window.ethereum ? new ethers.BrowserProvider(window.ethereum) : null);
+
+    if (!currentProvider) return null;
+
+    return new ethers.Contract(SWINGOLD_ADDRESS, SwingoldABI, currentProvider);
   };
 
   // Get trade manager contract instance
   const getTradeManagerContract = () => {
-    if (!TRADE_MANAGER_ADDRESS) throw new Error("Trade manager contract address not configured");
-    if (!signer) throw new Error("No signer available. Please connect your wallet.");
+    if (!signer || !TRADE_MANAGER_ADDRESS) return null;
     return new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, signer);
   };
 
   // Get ETH balance
   const getBalance = async () => {
-    if (!provider || !account) throw new Error("No provider or address available");
-    return await provider.getBalance(account);
+    if (!account || !provider) return null;
+    try {
+      const balance = await provider.getBalance(account);
+      return balance.toString();
+    } catch (err) {
+      console.error("Error getting ETH balance:", err);
+      return null;
+    }
   };
 
-  // Sign message
+  // Sign a message
   const signMessage = async (message) => {
-    if (!signer) throw new Error("No signer available. Please connect your wallet.");
+    if (!signer) throw new Error("No signer available");
     return await signer.signMessage(message);
   };
 
-  // Token operations
+  // Approve tokens for spending
   const approveTokens = async (spenderAddress, amount) => {
-    const tokenContract = getTokenContract();
-    const tx = await tokenContract.approve(spenderAddress, amount);
+    if (!signer || !SWINGOLD_ADDRESS) throw new Error("No signer or contract address available");
+    const contract = new ethers.Contract(SWINGOLD_ADDRESS, SwingoldABI, signer);
+    const tx = await contract.approve(spenderAddress, amount);
     return await tx.wait();
   };
 
+  // Transfer tokens
   const transferTokens = async (toAddress, amount) => {
-    const tokenContract = getTokenContract();
-    const tx = await tokenContract.transfer(toAddress, amount);
+    if (!signer || !SWINGOLD_ADDRESS) throw new Error("No signer or contract address available");
+    const contract = new ethers.Contract(SWINGOLD_ADDRESS, SwingoldABI, signer);
+    const tx = await contract.transfer(toAddress, amount);
     return await tx.wait();
   };
 
-  // Trade operations
+  // Create a trade
   const createTrade = async (sellerAddress, itemName, itemCategory, price) => {
-    const tradeContract = getTradeManagerContract();
-    const tx = await tradeContract.createTrade(sellerAddress, itemName, itemCategory, price);
+    if (!signer || !TRADE_MANAGER_ADDRESS) throw new Error("No signer or contract address available");
+    const contract = new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, signer);
+    const tx = await contract.createTrade(sellerAddress, itemName, itemCategory, price);
     return await tx.wait();
   };
 
+  // Confirm a trade
   const confirmTrade = async (itemName) => {
-    const tradeContract = getTradeManagerContract();
-    const tx = await tradeContract.confirmTrade(itemName);
+    if (!signer || !TRADE_MANAGER_ADDRESS) throw new Error("No signer or contract address available");
+    const contract = new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, signer);
+    const tx = await contract.confirmTrade(itemName);
     return await tx.wait();
   };
 
+  // Cancel a trade
   const cancelTrade = async (itemName) => {
-    const tradeContract = getTradeManagerContract();
-    const tx = await tradeContract.cancelTrade(itemName);
+    if (!signer || !TRADE_MANAGER_ADDRESS) throw new Error("No signer or contract address available");
+    const contract = new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, signer);
+    const tx = await contract.cancelTrade(itemName);
     return await tx.wait();
   };
 
+  // Get trade info
   const getTradeInfo = async (itemName) => {
-    if (!provider) throw new Error("No provider available");
-    if (!TRADE_MANAGER_ADDRESS) throw new Error("Trade manager contract address not configured");
-
-    const tradeContract = new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, provider);
-    const tradeInfo = await tradeContract.trades(itemName);
-
+    if (!provider || !TRADE_MANAGER_ADDRESS) throw new Error("No provider or contract address available");
+    const contract = new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, provider);
+    const tradeInfo = await contract.getTradeInfo(itemName);
     return {
-      buyer: tradeInfo[0],
-      seller: tradeInfo[1],
+      seller: tradeInfo[0],
+      buyer: tradeInfo[1],
       itemName: tradeInfo[2],
       itemCategory: tradeInfo[3],
-      itemPrice: tradeInfo[4],
-      createdAt: tradeInfo[5],
-      confirmed: tradeInfo[6],
-      completed: tradeInfo[7],
+      price: tradeInfo[4].toString(),
+      status: tradeInfo[5],
     };
   };
 
-  // Utility functions
+  // Format address for display
   const formatAddress = (address) => {
     if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  // Format token balance
   const formatTokenBalance = (balance, decimals = 18) => {
     if (!balance) return "0";
-    return ethers.formatUnits(balance, decimals);
+    try {
+      return ethers.formatUnits(balance, decimals);
+    } catch (error) {
+      return "0";
+    }
   };
 
+  // Parse token amount
   const parseTokenAmount = (amount, decimals = 18) => {
-    return ethers.parseUnits(amount.toString(), decimals);
+    try {
+      return ethers.parseUnits(amount.toString(), decimals);
+    } catch (error) {
+      throw new Error("Invalid amount format");
+    }
   };
 
+  // Check if address has sufficient balance
   const hasSufficientBalance = async (address, requiredAmount) => {
     try {
       const balance = await getTokenBalance(address);
-      return balance >= requiredAmount;
+      return balance && BigInt(balance) >= BigInt(requiredAmount);
     } catch (err) {
       console.error("Error checking balance:", err);
       return false;
     }
   };
 
+  // Get network information
   const getNetworkInfo = async () => {
-    if (!provider) throw new Error("No provider available");
-    const network = await provider.getNetwork();
-    return {
-      chainId: network.chainId.toString(),
-      name: network.name,
-    };
+    if (!provider) return null;
+    try {
+      const network = await provider.getNetwork();
+      return {
+        chainId: network.chainId.toString(),
+        name: network.name,
+      };
+    } catch (err) {
+      console.error("Error getting network info:", err);
+      return null;
+    }
+  };
+
+  // Refresh balance manually
+  const refreshBalance = async () => {
+    if (account) {
+      await loadTokenBalance(account);
+    }
   };
 
   return {
@@ -368,50 +411,33 @@ export const useWallet = () => {
     provider,
     signer,
     chainId,
-    isConnected: !!account,
     isConnecting,
     error,
     tokenBalance,
     isLoadingBalance,
+    isConnected: !!account,
 
-    // Connection methods
+    // Methods
     connect,
     disconnect,
-
-    // Utility methods
-    getBalance,
-    signMessage,
-    getTokenBalance,
+    clearLocalWalletState,
     loadTokenBalance,
+    refreshBalance,
+    getTokenBalance,
     getTokenContract,
     getTradeManagerContract,
-
-    // Token operations
+    getBalance,
+    signMessage,
     approveTokens,
     transferTokens,
-
-    // Trade operations
     createTrade,
     confirmTrade,
     cancelTrade,
     getTradeInfo,
-
-    // Utility functions
     formatAddress,
     formatTokenBalance,
     parseTokenAmount,
     hasSufficientBalance,
     getNetworkInfo,
-
-    // Aliases for backward compatibility
-    address: account,
-    walletInfo: account
-      ? {
-          address: account,
-          chainId,
-          connected: true,
-          connectedAt: new Date().toISOString(),
-        }
-      : null,
   };
 };

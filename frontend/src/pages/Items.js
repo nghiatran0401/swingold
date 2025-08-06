@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Navbar } from "../components";
 import { fetchItems, recordOnchainPurchase, fetchUserBalance } from "../api";
 import { Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Stack, Dialog, DialogActions, DialogTitle, Alert, Chip, Slide } from "@mui/material";
 import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
@@ -41,14 +40,16 @@ function Items({ logout }) {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  }, []); // Only run once on mount
 
-    // Update balance when token balance changes
+  // Update balance when token balance changes
+  useEffect(() => {
     if (tokenBalance) {
       setRawBalance(tokenBalance.toString());
       const formatted = formatTokenBalance(tokenBalance);
       setOnchainBalance(formatted);
     }
-  }, [tokenBalance, formatTokenBalance]);
+  }, [tokenBalance]); // Only depend on tokenBalance
 
   // Combined debounced search and sort
   useEffect(() => {
@@ -181,7 +182,6 @@ function Items({ logout }) {
 
   return (
     <>
-      <Navbar logout={logout} />
 
       {loading && (
         <Box

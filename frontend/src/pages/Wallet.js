@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Box, Typography, Button, Paper, Grid, Stack, Chip, CircularProgress, Dialog, DialogTitle, DialogActions, TextField, Slide } from "@mui/material";
-import Navbar from "../components/Navbar";
 import { History, Send, GetApp, AccountBalanceWallet, CheckCircle } from "@mui/icons-material";
 import { ethers } from "ethers";
 import { fetchTransactions, fetchUserBalance, sendGold, getUserStatistics } from "../api";
@@ -60,35 +59,39 @@ function Wallet({ logout }) {
   useEffect(() => {
     if (window.ethereum) {
       // Handle account changes
-      const handleAccountsChanged = (accounts) => {
+      const handleAccountsChanged = async (accounts) => {
         if (accounts.length === 0) {
           // User disconnected their wallet
           disconnect();
         } else {
           // User switched accounts
           const newAddress = accounts[0];
-          const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-          const updatedUser = {
-            ...currentUser,
-            wallet_address: newAddress,
-          };
-          localStorage.setItem("user", JSON.stringify(updatedUser));
-          setUserProfile(updatedUser);
+          try {
+            // Update wallet address in database
+            const { updateWalletAddress } = await import("../api");
+            const updatedUser = await updateWalletAddress(newAddress);
+            setUserProfile(updatedUser);
+          } catch (error) {
+            console.error("Failed to update wallet address in database:", error);
+            // Fallback to localStorage update
+            const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+            const updatedUser = {
+              ...currentUser,
+              wallet_address: newAddress,
+            };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            setUserProfile(updatedUser);
+          }
 
-          // Update wallet info
-          const walletInfo = JSON.parse(localStorage.getItem("walletInfo") || "{}");
-          walletInfo.address = newAddress;
-          localStorage.setItem("walletInfo", JSON.stringify(walletInfo));
-
-          // Refresh data
-          window.location.reload();
+          // Refresh data by updating state instead of reloading
+          // The wallet context will handle the state updates automatically
         }
       };
 
       // Handle chain changes
       const handleChainChanged = () => {
-        // Reload the page when chain changes
-        window.location.reload();
+        // Update chain ID when chain changes (handled by wallet context)
+        console.log("Chain changed - wallet context will handle this");
       };
 
       window.ethereum.on("accountsChanged", handleAccountsChanged);
@@ -127,8 +130,7 @@ function Wallet({ logout }) {
   const disconnectWallet = () => {
     // Use context's disconnect function
     disconnect();
-    // Reload page to ensure clean state
-    window.location.reload();
+    // State will be updated automatically by the wallet context
   };
 
   const handleSendGold = async () => {
@@ -578,7 +580,6 @@ function Wallet({ logout }) {
 
   return (
     <>
-      <Navbar logout={logout} />
 
       {loading && (
         <Box
