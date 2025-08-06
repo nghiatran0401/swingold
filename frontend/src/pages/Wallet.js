@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Box, Typography, Button, Paper, Grid, Stack, Chip, CircularProgress, Dialog, DialogTitle, DialogActions, TextField, Slide } from "@mui/material";
-import { History, Send, GetApp, AccountBalanceWallet, CheckCircle } from "@mui/icons-material";
+import { History, Send, GetApp, AccountBalanceWallet, CheckCircle, ArrowBack } from "@mui/icons-material";
 import { ethers } from "ethers";
 import { fetchTransactions, fetchUserBalance, sendGold, getUserStatistics } from "../api";
 import { formatGold } from "../goldUtils";
@@ -25,9 +25,10 @@ function Wallet({ logout }) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
   const [statistics, setStatistics] = useState(null);
+  const [isTransferring, setIsTransferring] = useState(false);
 
   // Use wallet context
-  const { isConnected, account, tokenBalance, formatTokenBalance, transferTokens, connect, disconnect } = useWalletContext();
+  const { isConnected, account, tokenBalance, formatTokenBalance, transferTokens, connect, disconnect, loadTokenBalance } = useWalletContext();
 
   // Load user from localStorage when on mount
   useEffect(() => {
@@ -139,21 +140,76 @@ function Wallet({ logout }) {
       return;
     }
 
+    // Validate recipient address format
+    if (!ethers.isAddress(recipientAddress)) {
+      setError("Invalid recipient address format");
+      return;
+    }
+
+    // Prevent sending to yourself
+    if (account && account.toLowerCase() === recipientAddress.toLowerCase()) {
+      setError("Cannot send gold to yourself");
+      return;
+    }
+
+    // Validate amount
+    const amount = parseFloat(sendAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setError("Please enter a valid amount");
+      return;
+    }
+
+    // Check if user has sufficient balance
+    const currentBalance = parseFloat(formatTokenBalance(tokenBalance || "0"));
+    if (amount > currentBalance) {
+      setError(`Insufficient balance. You have ${currentBalance} SG`);
+      return;
+    }
+
+    setIsTransferring(true);
+    setError(""); // Clear any previous errors
+
     try {
-      const amount = ethers.parseUnits(sendAmount.toString(), 18);
-      await transferTokens(recipientAddress, amount);
+      // Convert amount to wei (smallest unit)
+      const amountInWei = ethers.parseUnits(sendAmount.toString(), 18);
+
+      // Execute blockchain transfer
+      const tx = await transferTokens(recipientAddress, amountInWei);
+
+      // Wait for transaction to be mined
+      const receipt = await tx.wait();
+
+      // Record the transfer in the backend
+      const transferData = {
+        recipient_address: recipientAddress,
+        amount: amountInWei.toString(),
+        tx_hash: receipt.hash,
+      };
+
+      await sendGold(transferData);
+
+      // Close dialog and reset form
       setSendGoldDialog(false);
       setSendAmount("");
       setRecipientAddress("");
 
+      // Refresh data
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       const updatedTransactions = await fetchTransactions(user?.id);
       setTransactionHistory(updatedTransactions);
 
-      const updatedBalance = await fetchUserBalance(user?.wallet_address);
-      setOnchainBalance(formatGold(updatedBalance));
+      // Refresh wallet balance
+      if (account) {
+        await loadTokenBalance(account);
+      }
+
+      // Show success message
+      alert(`Successfully sent ${sendAmount} SG to ${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}`);
     } catch (err) {
-      setError(err.message);
+      console.error("Transfer failed:", err);
+      setError(err.message || "Transfer failed. Please try again.");
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -304,119 +360,198 @@ function Wallet({ logout }) {
       statistics.total_spent > 0 ? Math.round(((statistics.spending_breakdown.events + statistics.spending_breakdown.items + statistics.spending_breakdown.transfers) / statistics.total_spent) * 100) : 0;
 
     return (
-      <Grid alignItems="center" container justifyContent="center" spacing={4}>
-        <Grid item md={6} xs={12}>
-          <Paper elevation={3} sx={{ ...cardBase, textAlign: "center", minHeight: "400px" }}>
-            <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 4 }} variant="h5">
-              Spending Statistics
-            </Typography>
-            <Box
-              sx={{
-                width: 200,
-                height: 200,
-                borderRadius: "50%",
-                background: `conic-gradient(#ff001e 0deg ${totalSpentPercentage * 3.6}deg, #f0f0f0 ${totalSpentPercentage * 3.6}deg 360deg)`,
-                mx: "auto",
-                mb: 3,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+      <>
+        {/* Back Button */}
+        <Box sx={{ mb: 4 }}>
+          <Button
+            onClick={() => setCurrentView("main")}
+            startIcon={<ArrowBack />}
+            sx={{
+              color: "#666",
+              fontFamily: "Poppins",
+              fontWeight: 600,
+              textTransform: "none",
+              "&:hover": {
+                color: "#ff001e",
+              },
+            }}
+          >
+            Back to Wallet
+          </Button>
+        </Box>
+
+        <Grid alignItems="center" container justifyContent="center" spacing={4}>
+          <Grid item md={6} xs={12}>
+            <Paper elevation={3} sx={{ ...cardBase, textAlign: "center", minHeight: "400px" }}>
+              <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 4 }} variant="h5">
+                Spending Statistics
+              </Typography>
               <Box
                 sx={{
-                  width: 120,
-                  height: 120,
+                  width: 200,
+                  height: 200,
                   borderRadius: "50%",
-                  backgroundColor: "#ffffff",
+                  background: `conic-gradient(#ff001e 0deg ${totalSpentPercentage * 3.6}deg, #f0f0f0 ${totalSpentPercentage * 3.6}deg 360deg)`,
+                  mx: "auto",
+                  mb: 3,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828" }} variant="h6">
-                  {totalSpentPercentage}%
-                </Typography>
+                <Box
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: "50%",
+                    backgroundColor: "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828" }} variant="h6">
+                    {totalSpentPercentage}%
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-            <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e", textAlign: "center" }} variant="body1">
-              Events: {Math.round(statistics.spending_percentage.events)}%
-              <br />
-              Items: {Math.round(statistics.spending_percentage.items)}%
-              <br />
-              Transfers: {Math.round(statistics.spending_percentage.transfers)}%
-            </Typography>
-          </Paper>
+              <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e", textAlign: "center" }} variant="body1">
+                Events: {Math.round(statistics.spending_percentage.events)}%
+                <br />
+                Items: {Math.round(statistics.spending_percentage.items)}%
+                <br />
+                Transfers: {Math.round(statistics.spending_percentage.transfers)}%
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item md={6} xs={12}>
+            <Paper elevation={3} sx={{ ...cardBase, minHeight: "400px" }}>
+              <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }} variant="h5">
+                Summary
+              </Typography>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#4caf50" }} variant="h6">
+                    Total Earned: {formatGold(statistics.total_earned)} GOLD
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e" }} variant="h6">
+                    Total Spent: {formatGold(statistics.total_spent)} GOLD
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
+                    Events: {formatGold(statistics.spending_breakdown.events)} GOLD
+                  </Typography>
+                  <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
+                    Items: {formatGold(statistics.spending_breakdown.items)} GOLD
+                  </Typography>
+                  <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
+                    Transfers: {formatGold(statistics.spending_breakdown.transfers)} GOLD
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+          </Grid>
         </Grid>
-        <Grid item md={6} xs={12}>
-          <Paper elevation={3} sx={{ ...cardBase, minHeight: "400px" }}>
-            <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }} variant="h5">
-              Summary
-            </Typography>
-            <Stack spacing={3}>
-              <Box>
-                <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#4caf50" }} variant="h6">
-                  Total Earned: {formatGold(statistics.total_earned)} GOLD
-                </Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e" }} variant="h6">
-                  Total Spent: {formatGold(statistics.total_spent)} GOLD
-                </Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
-                  Events: {formatGold(statistics.spending_breakdown.events)} GOLD
-                </Typography>
-                <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
-                  Items: {formatGold(statistics.spending_breakdown.items)} GOLD
-                </Typography>
-                <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
-                  Transfers: {formatGold(statistics.spending_breakdown.transfers)} GOLD
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
-        </Grid>
-      </Grid>
+      </>
     );
   };
 
   const _renderHistoryView = () => (
-    <Grid alignItems="center" container justifyContent="center" spacing={4}>
-      <Paper elevation={3} sx={{ ...cardBase }}>
-        <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 4 }} variant="h4">
-          Transaction History
-        </Typography>
-        <Stack spacing={3}>
-          {transactionHistory.map((tx) => (
-            <TransactionCard detailed key={tx.id} tx={tx} />
-          ))}
-        </Stack>
-      </Paper>
-    </Grid>
+    <>
+      {/* Back Button */}
+      <Box sx={{ mb: 4 }}>
+        <Button
+          onClick={() => setCurrentView("main")}
+          startIcon={<ArrowBack />}
+          sx={{
+            color: "#666",
+            fontFamily: "Poppins",
+            fontWeight: 600,
+            textTransform: "none",
+            "&:hover": {
+              color: "#ff001e",
+            },
+          }}
+        >
+          Back to Wallet
+        </Button>
+      </Box>
+
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }} variant="h5">
+            Transaction History
+          </Typography>
+        </Grid>
+        {transactionHistory.length === 0 ? (
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ ...cardBase, textAlign: "center", py: 8 }}>
+              <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="h6">
+                No transactions found
+              </Typography>
+            </Paper>
+          </Grid>
+        ) : (
+          transactionHistory.map((tx) => (
+            <Grid item key={tx.id} xs={12}>
+              <TransactionCard tx={tx} detailed={true} />
+            </Grid>
+          ))
+        )}
+      </Grid>
+    </>
   );
 
   const _renderReceivedView = () => {
-    const receivedTransactions = transactionHistory.filter((tx) => tx.direction === "credit");
-
     return (
-      <Grid alignItems="center" container justifyContent="center" spacing={4}>
-        <Paper elevation={3} sx={{ ...cardBase }}>
-          <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 4 }} variant="h4">
-            Received Gold
-          </Typography>
-          <Stack spacing={3}>
-            {receivedTransactions.length === 0 ? (
-              <Typography sx={{ textAlign: "center", color: "#666" }} variant="body1">
-                No received transactions yet
-              </Typography>
-            ) : (
-              receivedTransactions.map((tx) => <TransactionCard detailed key={tx.id} tx={tx} />)
-            )}
-          </Stack>
-        </Paper>
-      </Grid>
+      <>
+        {/* Back Button */}
+        <Box sx={{ mb: 4 }}>
+          <Button
+            onClick={() => setCurrentView("main")}
+            startIcon={<ArrowBack />}
+            sx={{
+              color: "#666",
+              fontFamily: "Poppins",
+              fontWeight: 600,
+              textTransform: "none",
+              "&:hover": {
+                color: "#ff001e",
+              },
+            }}
+          >
+            Back to Wallet
+          </Button>
+        </Box>
+
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }} variant="h5">
+              Received Transactions
+            </Typography>
+          </Grid>
+          {transactionHistory.filter((tx) => tx.type === "transfer" && tx.amount > 0).length === 0 ? (
+            <Grid item xs={12}>
+              <Paper elevation={3} sx={{ ...cardBase, textAlign: "center", py: 8 }}>
+                <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="h6">
+                  No received transactions found
+                </Typography>
+              </Paper>
+            </Grid>
+          ) : (
+            transactionHistory
+              .filter((tx) => tx.type === "transfer" && tx.amount > 0)
+              .map((tx) => (
+                <Grid item key={tx.id} xs={12}>
+                  <TransactionCard tx={tx} detailed={true} />
+                </Grid>
+              ))
+          )}
+        </Grid>
+      </>
     );
   };
 
@@ -580,7 +715,6 @@ function Wallet({ logout }) {
 
   return (
     <>
-
       {loading && (
         <Box
           sx={{
@@ -804,222 +938,286 @@ function Wallet({ logout }) {
             </Paper>
           </Box>
         </Box>
-      </Box>
 
-      <Dialog
-        PaperProps={{
-          sx: {
-            borderRadius: "40px",
-            backgroundColor: "#ffffff",
-            boxShadow: "0 60px 160px rgba(0,0,0,0.25), 0 0 100px rgba(255, 0, 30, 0.2)",
-            border: "1px solid rgba(255,255,255,0.4)",
-            overflow: "hidden",
-            position: "relative",
-            maxHeight: "90vh",
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,249,255,0.1) 100%)",
-              pointerEvents: "none",
-              zIndex: 0,
-            },
-          },
-        }}
-        TransitionComponent={Slide}
-        fullWidth
-        keepMounted
-        maxWidth="sm"
-        onClose={() => setSendGoldDialog(false)}
-        open={sendGoldDialog}
-      >
-        <DialogTitle
-          sx={{
-            background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
-            color: "#ffffff",
-            fontFamily: "Poppins",
-            fontWeight: "900",
-            fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
-            textAlign: "center",
-            py: { xs: 3, sm: 4, md: 5 },
-            px: { xs: 4, sm: 5, md: 6 },
-            position: "relative",
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background:
-                'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
-              opacity: 0.4,
-            },
-            "&::after": {
-              content: '""',
-              position: "absolute",
-              bottom: 0,
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "60px",
-              height: "4px",
-              background: "linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.6), rgba(255,255,255,0.3))",
-              borderRadius: "2px",
-            },
-          }}
-        >
-          <Box alignItems="center" display="flex" justifyContent="center">
-            <Typography
-              sx={{
-                fontFamily: "Poppins",
-                fontWeight: "900",
-                fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
-                textShadow: "0 4px 8px rgba(0,0,0,0.3)",
-                position: "relative",
-                zIndex: 1,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              💸 Send Gold
-            </Typography>
-          </Box>
-        </DialogTitle>
+        {/* Main Content Area */}
         <Box
           sx={{
-            py: { xs: 4, sm: 5, md: 6 },
-            px: { xs: 3, sm: 4, md: 5 },
-            textAlign: "center",
-            maxHeight: "60vh",
-            overflow: "auto",
-            "&::-webkit-scrollbar": {
-              width: "8px",
-            },
-            "&::-webkit-scrollbar-track": {
-              background: "rgba(0,0,0,0.1)",
-              borderRadius: "4px",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              background: "rgba(255, 0, 30, 0.3)",
-              borderRadius: "4px",
-              "&:hover": {
-                background: "rgba(255, 0, 30, 0.5)",
-              },
-            },
+            maxWidth: "1200px",
+            mx: "auto",
+            px: 4,
+            pb: 8,
           }}
         >
-          <TextField
-            autoFocus
-            fullWidth
-            label="Recipient Wallet Address"
-            margin="dense"
-            onChange={(e) => setRecipientAddress(e.target.value)}
-            placeholder="0x..."
-            sx={{
-              mb: 3,
-              fontFamily: "Poppins",
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "16px",
-                fontFamily: "Poppins",
-                "& fieldset": {
-                  borderColor: "rgba(255,255,255,0.3)",
-                  borderWidth: "2px",
-                },
-                "&:hover fieldset": {
-                  borderColor: "#ff001e",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#ff001e",
-                },
-              },
-            }}
-            value={recipientAddress}
-            variant="outlined"
-          />
-          <TextField
-            fullWidth
-            inputProps={{ min: 0, step: 0.1 }}
-            label="Amount (GOLD)"
-            margin="dense"
-            onChange={(e) => setSendAmount(e.target.value)}
-            sx={{
-              mb: 3,
-              fontFamily: "Poppins",
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "16px",
-                fontFamily: "Poppins",
-                "& fieldset": {
-                  borderColor: "rgba(255,255,255,0.3)",
-                  borderWidth: "2px",
-                },
-                "&:hover fieldset": {
-                  borderColor: "#ff001e",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#ff001e",
-                },
-              },
-            }}
-            type="number"
-            value={sendAmount}
-            variant="outlined"
-          />
+          {/* View Selection */}
+          {_currentView === "main" && _renderMainView()}
+          {_currentView === "statistics" && _renderStatisticsView()}
+          {_currentView === "history" && _renderHistoryView()}
+          {_currentView === "received" && _renderReceivedView()}
         </Box>
-        <DialogActions
-          sx={{
-            justifyContent: "center",
-            pb: { xs: 4, sm: 5, md: 6 },
-            pt: { xs: 2, sm: 3, md: 4 },
-            px: { xs: 3, sm: 4, md: 5 },
-            gap: { xs: 2, sm: 3 },
+
+        <Dialog
+          PaperProps={{
+            sx: {
+              borderRadius: "40px",
+              backgroundColor: "#ffffff",
+              boxShadow: "0 60px 160px rgba(0,0,0,0.25), 0 0 100px rgba(255, 0, 30, 0.2)",
+              border: "1px solid rgba(255,255,255,0.4)",
+              overflow: "hidden",
+              position: "relative",
+              maxHeight: "90vh",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,249,255,0.1) 100%)",
+                pointerEvents: "none",
+                zIndex: 0,
+              },
+            },
           }}
+          TransitionComponent={Slide}
+          fullWidth
+          keepMounted
+          maxWidth="sm"
+          onClose={() => setSendGoldDialog(false)}
+          open={sendGoldDialog}
         >
-          <Button
-            onClick={() => setSendGoldDialog(false)}
+          <DialogTitle
             sx={{
+              background: "linear-gradient(135deg, #ff001e 0%, #d4001a 100%)",
+              color: "#ffffff",
               fontFamily: "Poppins",
-              textTransform: "none",
-              borderRadius: "12px",
-              px: { xs: 3, sm: 4 },
-              py: { xs: 1, sm: 1.2 },
-              fontSize: { xs: "0.9rem", sm: "1rem" },
-              border: "2px solid #e0e0e0",
-              color: "#666",
-              "&:hover": {
-                borderColor: "#ff001e",
-                color: "#ff001e",
+              fontWeight: "900",
+              fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+              textAlign: "center",
+              py: { xs: 3, sm: 4, md: 5 },
+              px: { xs: 4, sm: 5, md: 6 },
+              position: "relative",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background:
+                  'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>\')',
+                opacity: 0.4,
+              },
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                bottom: 0,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "60px",
+                height: "4px",
+                background: "linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.6), rgba(255,255,255,0.3))",
+                borderRadius: "2px",
               },
             }}
           >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSendGold}
+            <Box alignItems="center" display="flex" justifyContent="center">
+              <Typography
+                sx={{
+                  fontFamily: "Poppins",
+                  fontWeight: "900",
+                  fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
+                  textShadow: "0 4px 8px rgba(0,0,0,0.3)",
+                  position: "relative",
+                  zIndex: 1,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                💸 Send Gold
+              </Typography>
+            </Box>
+          </DialogTitle>
+          <Box
             sx={{
-              background: "linear-gradient(45deg, #ff001e, #d4001a)",
-              borderRadius: "12px",
-              textTransform: "none",
-              fontFamily: "Poppins",
-              fontWeight: "600",
-              px: { xs: 3, sm: 4 },
-              py: { xs: 1, sm: 1.2 },
-              fontSize: { xs: "0.9rem", sm: "1rem" },
-              boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                background: "linear-gradient(45deg, #d4001a, #b30017)",
-                transform: "translateY(-2px)",
-                boxShadow: "0 6px 20px rgba(255, 0, 30, 0.4)",
+              py: { xs: 4, sm: 5, md: 6 },
+              px: { xs: 3, sm: 4, md: 5 },
+              textAlign: "center",
+              maxHeight: "60vh",
+              overflow: "auto",
+              "&::-webkit-scrollbar": {
+                width: "8px",
+              },
+              "&::-webkit-scrollbar-track": {
+                background: "rgba(0,0,0,0.1)",
+                borderRadius: "4px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                background: "rgba(255, 0, 30, 0.3)",
+                borderRadius: "4px",
+                "&:hover": {
+                  background: "rgba(255, 0, 30, 0.5)",
+                },
               },
             }}
-            variant="contained"
           >
-            Send Gold
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <TextField
+              autoFocus
+              fullWidth
+              label="Recipient Wallet Address"
+              margin="dense"
+              onChange={(e) => setRecipientAddress(e.target.value)}
+              placeholder="0x..."
+              sx={{
+                mb: 3,
+                fontFamily: "Poppins",
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "16px",
+                  fontFamily: "Poppins",
+                  "& fieldset": {
+                    borderColor: "rgba(255,255,255,0.3)",
+                    borderWidth: "2px",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "#ff001e",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#ff001e",
+                  },
+                },
+              }}
+              value={recipientAddress}
+              variant="outlined"
+            />
+            <TextField
+              fullWidth
+              inputProps={{ min: 0, step: 0.1 }}
+              label="Amount (GOLD)"
+              margin="dense"
+              onChange={(e) => setSendAmount(e.target.value)}
+              sx={{
+                mb: 3,
+                fontFamily: "Poppins",
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "16px",
+                  fontFamily: "Poppins",
+                  "& fieldset": {
+                    borderColor: "rgba(255,255,255,0.3)",
+                    borderWidth: "2px",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "#ff001e",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#ff001e",
+                  },
+                },
+              }}
+              type="number"
+              value={sendAmount}
+              variant="outlined"
+            />
+
+            {/* Error Display */}
+            {_error && (
+              <Box
+                sx={{
+                  mb: 3,
+                  p: 2,
+                  backgroundColor: "rgba(244, 67, 54, 0.1)",
+                  border: "1px solid rgba(244, 67, 54, 0.3)",
+                  borderRadius: "12px",
+                  color: "#d32f2f",
+                  fontFamily: "Poppins",
+                  fontSize: "0.9rem",
+                }}
+              >
+                {_error}
+              </Box>
+            )}
+
+            {/* Balance Info */}
+            <Box
+              sx={{
+                mb: 3,
+                p: 2,
+                backgroundColor: "rgba(76, 175, 80, 0.1)",
+                border: "1px solid rgba(76, 175, 80, 0.3)",
+                borderRadius: "12px",
+                color: "#2e7d32",
+                fontFamily: "Poppins",
+                fontSize: "0.9rem",
+              }}
+            >
+              Available Balance: {formatTokenBalance(tokenBalance || "0")} SG
+            </Box>
+          </Box>
+          <DialogActions
+            sx={{
+              justifyContent: "center",
+              pb: { xs: 4, sm: 5, md: 6 },
+              pt: { xs: 2, sm: 3, md: 4 },
+              px: { xs: 3, sm: 4, md: 5 },
+              gap: { xs: 2, sm: 3 },
+            }}
+          >
+            <Button
+              onClick={() => setSendGoldDialog(false)}
+              disabled={isTransferring}
+              sx={{
+                fontFamily: "Poppins",
+                textTransform: "none",
+                borderRadius: "12px",
+                px: { xs: 3, sm: 4 },
+                py: { xs: 1, sm: 1.2 },
+                fontSize: { xs: "0.9rem", sm: "1rem" },
+                border: "2px solid #e0e0e0",
+                color: "#666",
+                "&:hover": {
+                  borderColor: "#ff001e",
+                  color: "#ff001e",
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendGold}
+              disabled={isTransferring || !sendAmount || !recipientAddress}
+              sx={{
+                background: "linear-gradient(45deg, #ff001e, #d4001a)",
+                borderRadius: "12px",
+                textTransform: "none",
+                fontFamily: "Poppins",
+                fontWeight: "600",
+                px: { xs: 3, sm: 4 },
+                py: { xs: 1, sm: 1.2 },
+                fontSize: { xs: "0.9rem", sm: "1rem" },
+                boxShadow: "0 4px 12px rgba(255, 0, 30, 0.3)",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  background: "linear-gradient(45deg, #d4001a, #b30017)",
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 6px 20px rgba(255, 0, 30, 0.4)",
+                },
+                "&:disabled": {
+                  background: "#ccc",
+                  transform: "none",
+                  boxShadow: "none",
+                },
+              }}
+              variant="contained"
+            >
+              {isTransferring ? (
+                <>
+                  <CircularProgress size={20} sx={{ color: "white", mr: 1 }} />
+                  Sending...
+                </>
+              ) : (
+                "Send Gold"
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </>
   );
 }

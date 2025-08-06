@@ -6,8 +6,8 @@
   "scripts": {
     "clean": "npx hardhat clean",
     "compile": "npx hardhat compile",
-    "node": "npx hardhat node",
     "extract-abis": "node extract-abis.js",
+    "node": "npx hardhat node --port 8546",
     "test": "npx hardhat test"
   },
   "keywords": [],

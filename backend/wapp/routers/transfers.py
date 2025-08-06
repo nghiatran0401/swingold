@@ -43,6 +43,18 @@ def send_gold(
         if not sender:
             raise HTTPException(status_code=404, detail="Sender user not found")
 
+        # Check if sender has a wallet address
+        if not sender.wallet_address:
+            raise HTTPException(status_code=400, detail="Sender must have a connected wallet")
+
+        # Prevent sending to yourself
+        if sender.wallet_address.lower() == recipient_address.lower():
+            raise HTTPException(status_code=400, detail="Cannot send gold to yourself")
+
+        # Validate recipient address format (basic check)
+        if not recipient_address.startswith("0x") or len(recipient_address) != 42:
+            raise HTTPException(status_code=400, detail="Invalid recipient address format")
+
         # Use transaction service for hybrid approach
         transaction_service = create_transaction_service(db)
         
@@ -56,6 +68,8 @@ def send_gold(
         
         return transaction
         
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to record transfer: {str(e)}")

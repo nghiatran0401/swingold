@@ -96,7 +96,7 @@ All prices and transactions in this app are denominated in **GOLD** (the Swingol
 
 - **Image:** Built from `backend/dapp/Dockerfile`
 - **Container Name:** swingold_backend_hardhat
-- **Port:** 8545
+- **Port:** 8546
 - **Environment:** ABI_OUTPUT_DIR=/app/shared-abis
 - **Volumes:**
   - `shared-abis` (for ABI sharing)

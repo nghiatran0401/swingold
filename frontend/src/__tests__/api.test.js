@@ -122,4 +122,44 @@ describe("API Functions", () => {
       await expect(api.fetchUserBalance()).rejects.toThrow("No wallet address provided");
     });
   });
+
+  describe("sendGold", () => {
+    test("successful gold transfer", async () => {
+      const mockResponse = { id: 1, message: "Transfer successful" };
+      const transferData = {
+        recipient_address: "0x1234567890123456789012345678901234567890",
+        amount: "1000000000000000000",
+        tx_hash: "0xtransactionhash123",
+      };
+
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await api.sendGold(transferData);
+
+      expect(fetch).toHaveBeenCalledWith(
+        `${process.env.REACT_APP_API_BASE_URL}/transfers/send`,
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-User-Id": "1",
+          },
+          body: JSON.stringify(transferData),
+        })
+      );
+      expect(result).toEqual(mockResponse);
+    });
+
+    test("handles transfer failure", async () => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ detail: "Insufficient balance" }),
+      });
+
+      await expect(api.sendGold({})).rejects.toThrow("Insufficient balance");
+    });
+  });
 });
