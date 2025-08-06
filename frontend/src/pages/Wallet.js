@@ -5,6 +5,7 @@ import { History, Send, GetApp, AccountBalanceWallet, CheckCircle } from "@mui/i
 import { ethers } from "ethers";
 import { fetchTransactions, fetchUserBalance, sendGold, getUserStatistics } from "../api";
 import { formatGold } from "../goldUtils";
+import { useWalletContext } from "../contexts/WalletContext";
 
 const cardBase = {
   p: { xs: 3, sm: 4 },
@@ -18,7 +19,6 @@ function Wallet({ logout }) {
   const [userProfile, setUserProfile] = useState(null);
   const [onchainBalance, setOnchainBalance] = useState(null);
   const [transactionHistory, setTransactionHistory] = useState([]);
-  const [_walletStatus, setWalletStatus] = useState("");
   const [isWalletLoading, setIsWalletLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [_error, setError] = useState(null);
@@ -27,18 +27,15 @@ function Wallet({ logout }) {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [statistics, setStatistics] = useState(null);
 
+  // Use wallet context
+  const { isConnected, account, tokenBalance, formatTokenBalance, transferTokens, connect, disconnect } = useWalletContext();
+
   // Load user from localStorage when on mount
   useEffect(() => {
     setLoading(true);
 
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const walletInfo = JSON.parse(localStorage.getItem("walletInfo") || "{}");
     setUserProfile(user);
-
-    // Check if wallet is already connected
-    if (walletInfo.connected && walletInfo.address) {
-      setWalletStatus("Wallet connected");
-    }
 
     Promise.all([fetchUserBalance(user?.wallet_address), fetchTransactions(user?.id), getUserStatistics(user?.id)])
       .then(([rawBalance, txs, stats]) => {
@@ -52,13 +49,21 @@ function Wallet({ logout }) {
     setLoading(false);
   }, []);
 
+  // Update balance when token balance changes
+  useEffect(() => {
+    if (tokenBalance) {
+      const formatted = formatTokenBalance(tokenBalance);
+      setOnchainBalance(formatted);
+    }
+  }, [tokenBalance, formatTokenBalance]);
+
   useEffect(() => {
     if (window.ethereum) {
       // Handle account changes
       const handleAccountsChanged = (accounts) => {
         if (accounts.length === 0) {
           // User disconnected their wallet
-          disconnectWallet();
+          disconnect();
         } else {
           // User switched accounts
           const newAddress = accounts[0];
@@ -100,8 +105,7 @@ function Wallet({ logout }) {
   }, []);
 
   // Top-level wallet connection status
-  const isWalletConnected = !!userProfile?.wallet_address;
-  const shortWallet = isWalletConnected ? `${userProfile.wallet_address.slice(0, 6)}...${userProfile.wallet_address.slice(-4)}` : null;
+  const shortWallet = isConnected && account ? `${account.slice(0, 6)}...${account.slice(-4)}` : null;
 
   const connectWallet = async () => {
     if (!window.ethereum) {
@@ -111,92 +115,18 @@ function Wallet({ logout }) {
 
     try {
       setIsWalletLoading(true);
-      setWalletStatus("Connecting to MetaMask...");
-
-      // Request account access
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error("No accounts found");
-      }
-
-      const selectedAddress = accounts[0];
-      setWalletStatus("Wallet connected successfully!");
-
-      // Get provider and signer
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-
-      // Verify the signer address matches the selected address
-      const signerAddress = await signer.getAddress();
-      if (signerAddress.toLowerCase() !== selectedAddress.toLowerCase()) {
-        throw new Error("Address mismatch");
-      }
-
-      // Get network information
-      const network = await provider.getNetwork();
-
-      // Store wallet information in localStorage
-      const walletInfo = {
-        address: selectedAddress,
-        chainId: network.chainId.toString(),
-        connected: true,
-        connectedAt: new Date().toISOString(),
-      };
-
-      localStorage.setItem("walletInfo", JSON.stringify(walletInfo));
-
-      // Update user profile with wallet address
-      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-      const updatedUser = {
-        ...currentUser,
-        wallet_address: selectedAddress,
-      };
-
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      setUserProfile(updatedUser);
-
-      setWalletStatus("Wallet connected and ready!");
-
-      // Refresh balance and transactions
-      const [rawBalance, txs, stats] = await Promise.all([fetchUserBalance(selectedAddress), fetchTransactions(updatedUser?.id), getUserStatistics(updatedUser?.id)]);
-
-      setOnchainBalance(formatGold(rawBalance));
-      setTransactionHistory(txs);
-      setStatistics(stats);
+      // Use context's connect function
+      await connect();
+      setIsWalletLoading(false);
     } catch (err) {
       console.error("Wallet connection error:", err);
-      setWalletStatus(`Connection failed: ${err.message}`);
-
-      // Clear any partial wallet data
-      localStorage.removeItem("walletInfo");
-    } finally {
-      setIsWalletLoading(false);
+      setError(err.message);
     }
   };
 
   const disconnectWallet = () => {
-    // Clear wallet information from localStorage
-    localStorage.removeItem("walletInfo");
-
-    // Update user profile to remove wallet address
-    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-    const updatedUser = {
-      ...currentUser,
-      wallet_address: null,
-    };
-
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    setUserProfile(updatedUser);
-
-    // Reset wallet-related state
-    setOnchainBalance(null);
-    setTransactionHistory([]);
-    setStatistics(null);
-    setWalletStatus("");
-
+    // Use context's disconnect function
+    disconnect();
     // Reload page to ensure clean state
     window.location.reload();
   };
@@ -208,13 +138,8 @@ function Wallet({ logout }) {
     }
 
     try {
-      const transferData = {
-        recipient_address: recipientAddress,
-        amount: parseFloat(sendAmount),
-        tx_hash: `0x${Date.now().toString(16)}`,
-      };
-
-      await sendGold(transferData);
+      const amount = ethers.parseUnits(sendAmount.toString(), 18);
+      await transferTokens(recipientAddress, amount);
       setSendGoldDialog(false);
       setSendAmount("");
       setRecipientAddress("");
@@ -794,7 +719,7 @@ function Wallet({ logout }) {
             >
               {/* Top-level wallet connection status */}
               <Box sx={{ display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
-                {isWalletConnected ? (
+                {isConnected ? (
                   <>
                     <Chip
                       color="success"
@@ -813,7 +738,7 @@ function Wallet({ logout }) {
                       variant="filled"
                     />
                     <Button
-                      onClick={disconnectWallet}
+                      onClick={disconnect}
                       size="small"
                       sx={{
                         background: "linear-gradient(45deg, #f44336 30%, #d32f2f 90%)",
