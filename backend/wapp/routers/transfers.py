@@ -1,77 +1,97 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 from services.database import get_db
-from services import models, schemas
-from typing import Optional
+import services.models as models
+from services.schemas import TransactionOut
+from services.transaction_service import create_transaction_service
+from services.web3 import get_balance
 from datetime import datetime
 
-""" Provides API endpoints for sending gold between users and retrieving transfer history. """
+router = APIRouter(
+    prefix="/transfers",
+    tags=["transfers"],
+    responses={404: {"description": "Not found"}},
+)
 
-router = APIRouter(prefix="/transfers", tags=["transfers"])
-
-@router.post("/send")
+@router.post("/send", response_model=TransactionOut, status_code=201)
 def send_gold(
-    transfer_data: schemas.TransferCreate,
+    transfer_data: dict = Body(...),
     db: Session = Depends(get_db),
-    x_user_id: Optional[str] = Header(None)
+    x_user_id: str = Query(..., alias="X-User-Id")
 ):
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail="User ID required")
-    
-    sender_id = int(x_user_id)
-    sender = db.query(models.User).filter(models.User.id == sender_id).first()
-    if not sender:
-        raise HTTPException(status_code=404, detail="Sender not found")
-    
-    recipient = db.query(models.User).filter(models.User.wallet_address == transfer_data.recipient_address).first()
-    if not recipient:
-        raise HTTPException(status_code=404, detail="Recipient not found")
-    
-    if sender.id == recipient.id:
-        raise HTTPException(status_code=400, detail="Cannot send gold to yourself")
-    
+    """
+    Send Swingold tokens to another user.
+    Expects: {recipient_address, amount, tx_hash}
+    """
     try:
-        # Use different tx_hash for sender and recipient to avoid unique constraint violation
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        sender_tx_hash = f"{transfer_data.tx_hash}_send_{timestamp}"
-        recipient_tx_hash = f"{transfer_data.tx_hash}_recv_{timestamp}"
+        # Validate required fields
+        recipient_address = transfer_data.get("recipient_address")
+        if not recipient_address:
+            raise HTTPException(status_code=400, detail="recipient_address is required")
         
-        sender_transaction = models.Transaction(
-            amount=transfer_data.amount,
-            direction=models.DirectionEnum.debit,
-            tx_hash=sender_tx_hash,
-            description=f"Sent gold to {recipient.username}",
-            status=models.StatusEnum.confirmed,
-            user_id=sender.id
+        amount = transfer_data.get("amount")
+        if amount is None or amount <= 0:
+            raise HTTPException(status_code=400, detail="amount must be positive")
+        
+        tx_hash = transfer_data.get("tx_hash")
+        if not tx_hash:
+            raise HTTPException(status_code=400, detail="tx_hash is required")
+
+        # Find sender user
+        user_id = int(x_user_id)
+        sender = db.query(models.User).filter(models.User.id == user_id).first()
+        if not sender:
+            raise HTTPException(status_code=404, detail="Sender user not found")
+
+        # Use transaction service for hybrid approach
+        transaction_service = create_transaction_service(db)
+        
+        # Record the transfer
+        transaction = transaction_service.record_transfer(
+            user_id=user_id,
+            amount=amount,
+            tx_hash=tx_hash,
+            recipient_address=recipient_address
         )
         
-        recipient_transaction = models.Transaction(
-            amount=transfer_data.amount,
-            direction=models.DirectionEnum.credit,
-            tx_hash=recipient_tx_hash,
-            description=f"Received gold from {sender.username}",
-            status=models.StatusEnum.confirmed,
-            user_id=recipient.id
-        )
+        return transaction
         
-        db.add(sender_transaction)
-        db.add(recipient_transaction)
-        db.commit()
-        
-        return {"message": "Gold transfer successful", "amount": transfer_data.amount}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Transfer failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to record transfer: {str(e)}")
 
 @router.get("/history/{user_id}")
-def get_transfer_history(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+def get_transfer_history(
+    user_id: int,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    """
+    Get transfer history for a specific user.
+    """
+    try:
+        transaction_service = create_transaction_service(db)
+        transfers = transaction_service.get_user_transaction_history(
+            user_id, limit, offset, "transfer"
+        )
         
-    transactions = db.query(models.Transaction).filter(
-        models.Transaction.user_id == user_id,
-        models.Transaction.description.like("%gold%")
-    ).order_by(models.Transaction.created_at.desc()).all()
-    
-    return transactions
+        return {
+            "transfers": transfers,
+            "total": len(transfers),
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch transfer history: {str(e)}")
+
+@router.get("/balance/{address}")
+def get_user_balance(address: str):
+    """
+    Get user's Swingold balance from blockchain.
+    """
+    try:
+        balance = get_balance(address)
+        return {"address": address, "balance": balance}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch balance: {str(e)}") 

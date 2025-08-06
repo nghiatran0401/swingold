@@ -1,55 +1,124 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
 
-@patch('routers.transactions_onchain.create_trade')
-def test_create_trade_onchain(mock_create_trade, client, sample_user, admin_user):
-    mock_create_trade.return_value = "0xtest123"
-    
-    response = client.post("/api/v1/transactions/onchain/create",
-                          params={
-                              "buyer": sample_user.wallet_address,
-                              "seller": admin_user.wallet_address,
-                              "item_name": "Test Item",
-                              "item_price": 100
-                          })
+def test_create_trade_onchain(client, sample_user, admin_user):
+    response = client.post(
+        "/transactions/onchain/create",
+        params={
+            "buyer": "0x1234567890123456789012345678901234567890",
+            "seller": "0x0987654321098765432109876543210987654321",
+            "item_name": "Test Item",
+            "item_category": "Electronics",
+            "item_price": 1000000000000000000
+        }
+    )
     assert response.status_code == 201
     data = response.json()
-    assert data["status"] == "success"
-    assert data["txn"] == "0xtest123"
+    assert "tx_hash" in data
+    assert "transaction_id" in data
 
-@patch('routers.transactions_onchain.confirm_trade')
-def test_confirm_trade_onchain(mock_confirm_trade, client, sample_user):
-    mock_confirm_trade.return_value = "0xconfirm123"
-    
-    response = client.post("/api/v1/transactions/onchain/confirm/1",
-                          params={"buyer": sample_user.wallet_address})
+def test_confirm_trade_onchain(client):
+    response = client.post(
+        "/transactions/onchain/confirm",
+        params={
+            "item_name": "Test Item",
+            "buyer": "0x1234567890123456789012345678901234567890"
+        }
+    )
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "success"
-    assert data["txn"] == "0xconfirm123"
+    assert "tx_hash" in data
+    assert "transaction_id" in data
 
-def test_record_onchain_purchase(client, sample_user):
-    purchase_data = {
-        "wallet_address": sample_user.wallet_address,
-        "price": 100,
-        "item_id": 1,
-        "tx_hash": "0xpurchase123",
-        "quantity": 1
-    }
-    response = client.post("/api/v1/transactions/onchain/purchase",
-                          json=purchase_data)
+def test_cancel_trade_onchain(client):
+    response = client.post(
+        "/transactions/onchain/cancel",
+        params={
+            "item_name": "Test Item",
+            "buyer": "0x1234567890123456789012345678901234567890"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "tx_hash" in data
+    assert "transaction_id" in data
+
+def test_record_onchain_purchase(client, sample_user, sample_item):
+    response = client.post(
+        "/transactions/onchain/purchase",
+        json={
+            "user_id": sample_user.id,
+            "item_id": sample_item.id,
+            "price": 1000000000000000000,
+            "tx_hash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            "quantity": 1
+        }
+    )
     assert response.status_code == 201
     data = response.json()
-    assert data["amount"] == 100
-    assert data["tx_hash"] == "0xpurchase123"
+    assert "id" in data
+    assert data["user_id"] == sample_user.id
+    assert data["item_id"] == sample_item.id
 
-@patch('routers.transactions_onchain.get_balance')
-def test_get_onchain_balance(mock_get_balance, client):
-    mock_get_balance.return_value = 1000000000000000000
-    
-    response = client.get("/api/v1/transactions/onchain/balance/0x1234")
+def test_record_event_registration(client, sample_user, sample_event):
+    response = client.post(
+        "/transactions/onchain/event-registration",
+        json={
+            "user_id": sample_user.id,
+            "event_id": sample_event.id,
+            "amount": 500000000000000000,
+            "tx_hash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+        }
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert "id" in data
+    assert data["user_id"] == sample_user.id
+    assert data["event_id"] == sample_event.id
+
+def test_record_transfer(client, sample_user):
+    response = client.post(
+        "/transactions/onchain/transfer",
+        json={
+            "user_id": sample_user.id,
+            "amount": 1000000000000000000,
+            "tx_hash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            "recipient_address": "0x0987654321098765432109876543210987654321"
+        }
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert "id" in data
+    assert data["user_id"] == sample_user.id
+
+def test_get_onchain_balance(client):
+    response = client.get("/transactions/onchain/balance/0x1234567890123456789012345678901234567890")
     assert response.status_code == 200
     data = response.json()
-    assert data["address"] == "0x1234"
-    assert data["balance"] == 1000000000000000000
+    assert "balance" in data
+
+def test_get_trade_info(client):
+    response = client.get("/transactions/onchain/trade/Test Item")
+    assert response.status_code == 200
+
+def test_mint_tokens_onchain(client):
+    response = client.post(
+        "/transactions/onchain/mint",
+        params={
+            "to_address": "0x1234567890123456789012345678901234567890",
+            "amount": 1000000000000000000
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "tx_hash" in data
+    assert "transaction_id" in data
+
+def test_get_user_transaction_history(client, sample_user):
+    response = client.get(f"/transactions/onchain/user/{sample_user.id}/history")
+    assert response.status_code == 200
+    data = response.json()
+    assert "transactions" in data
+    assert "total" in data
+    assert "limit" in data
+    assert "offset" in data

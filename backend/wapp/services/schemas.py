@@ -108,7 +108,6 @@ class TransactionOut(BaseModel):
 
 
 class OnchainPurchaseCreate(BaseModel):
-    wallet_address: str
     price: int
     item_id: int
     tx_hash: str

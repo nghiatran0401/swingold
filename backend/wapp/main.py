@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routers import items, events, transactions, auth, transactions_onchain, profile, transfers, statistics
+from routers import items, events, transactions, auth, transactions_onchain, transfers
 
 app = FastAPI()
 
@@ -17,11 +17,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(items.router, prefix="/api/v1")
 app.include_router(events.router, prefix="/api/v1")
-app.include_router(profile.router, prefix="/api/v1")
 app.include_router(transactions.router, prefix="/api/v1")
 app.include_router(transactions_onchain.router, prefix="/api/v1")
 app.include_router(transfers.router, prefix="/api/v1")
-app.include_router(statistics.router, prefix="/api/v1")
 
 # Handle exeption, displaying error message
 @app.exception_handler(Exception)

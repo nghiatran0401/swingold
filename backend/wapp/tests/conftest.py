@@ -7,93 +7,93 @@ from main import app
 import services.models as models
 from datetime import datetime
 
+# Create test database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(scope="function")
-def db_session():
+def db():
+    # Create tables
     Base.metadata.create_all(bind=engine)
+    
+    # Create session
     db = TestingSessionLocal()
     try:
         yield db
     finally:
         db.close()
+        # Drop tables
         Base.metadata.drop_all(bind=engine)
 
-@pytest.fixture(scope="function")
-def client(db_session):
+@pytest.fixture
+def client(db):
+    from main import app
+    from services.database import get_db
+    
     def override_get_db():
         try:
-            yield db_session
+            yield db
         finally:
             pass
     
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
+    return app
 
 @pytest.fixture
-def sample_user(db_session):
-    user = models.User(
-        username="testuser",
-        email="test@example.com",
-        password_hash="testpass",
-        wallet_address="0x1234567890123456789012345678901234567890",
-        is_admin=False
-    )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
-    return user
-
-@pytest.fixture
-def admin_user(db_session):
+def admin_user(db):
     user = models.User(
         username="admin",
-        email="admin@example.com",
-        password_hash="adminpass",
-        wallet_address="0x0987654321098765432109876543210987654321",
+        email="admin@swinburne.edu.au",
+        password_hash="cos30049",
+        is_active=True,
         is_admin=True
     )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user
 
 @pytest.fixture
-def sample_item(db_session):
+def sample_user(db):
+    user = models.User(
+        username="user1",
+        email="user1@swinburne.edu.au",
+        password_hash="cos30049",
+        is_active=True,
+        is_admin=False
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+@pytest.fixture
+def sample_item(db):
     item = models.Item(
         name="Test Item",
-        description="Test Description",
+        description="A test item",
         price=100.0,
-        image_url="test.jpg",
-        tags="test,item",
         status=models.ItemEventStatusEnum.active
     )
-    db_session.add(item)
-    db_session.commit()
-    db_session.refresh(item)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
     return item
 
 @pytest.fixture
-def sample_event(db_session):
+def sample_event(db):
+    from datetime import datetime
     event = models.Event(
         name="Test Event",
-        description="Test Event Description",
-        category="Test",
-        start_datetime=datetime(2025, 12, 1, 10, 0, 0),
-        end_datetime=datetime(2025, 12, 1, 12, 0, 0),
-        price=50.0,
-        location="Test Location",
-        seats_available=100,
+        description="A test event",
+        start_datetime=datetime(2025, 1, 1, 10, 0, 0),
+        price=0.0,
         status=models.ItemEventStatusEnum.upcoming
     )
-    db_session.add(event)
-    db_session.commit()
-    db_session.refresh(event)
+    db.add(event)
+    db.commit()
+    db.refresh(event)
     return event
 
 @pytest.fixture

@@ -58,15 +58,33 @@ class Event(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True, index=True)
+    
+    # Essential metadata for fast queries
     amount = Column(Numeric(18, 8), nullable=False)
     direction = Column(Enum(DirectionEnum), nullable=False)
     tx_hash = Column(String(66), unique=True, nullable=False)
     description = Column(String(500), nullable=True)
     status = Column(Enum(StatusEnum), default=StatusEnum.pending)
+    
+    # User and context
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     event_id = Column(Integer, ForeignKey("events.id"), nullable=True)
     item_id = Column(Integer, ForeignKey("items.id"), nullable=True)
+    
+    # Blockchain metadata for easy querying
+    block_number = Column(Integer, nullable=True)  # Block where tx was mined
+    gas_used = Column(Integer, nullable=True)      # Gas used for the transaction
+    gas_price = Column(Numeric(18, 8), nullable=True)  # Gas price in wei
+    
+    # Trade-specific metadata (for P2P trades)
+    trade_type = Column(String(50), nullable=True)  # 'item_purchase', 'p2p_trade', 'transfer', 'event_registration'
+    counterparty_address = Column(String(42), nullable=True)  # Other party in the trade
+    item_name = Column(String(255), nullable=True)  # For trades
+    item_category = Column(String(100), nullable=True)  # For trades
+    
+    # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    mined_at = Column(DateTime(timezone=True), nullable=True)  # When tx was mined
 
 class User(Base):
     __tablename__ = "users"
@@ -74,7 +92,6 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False)
     email = Column(String(255), unique=True, nullable=True)
     password_hash = Column(String(255), nullable=False)
-    wallet_address = Column(String(42), unique=True, nullable=True)  # Ethereum address (42 chars)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -22,10 +22,11 @@ def get_current_user(user: LoginRequest, db: Session = Depends(get_db)):
     if user.password != db_user.password_hash:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    return {
+    response_data = {
         "id": db_user.id, 
         "username": db_user.username, 
         "email": db_user.email,
-        "is_admin": db_user.is_admin, 
-        "wallet_address": db_user.wallet_address
+        "is_admin": db_user.is_admin
     }
+    
+    return response_data

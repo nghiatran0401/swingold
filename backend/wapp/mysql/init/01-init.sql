@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(100) NOT NULL UNIQUE,
     email VARCHAR(255) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    wallet_address VARCHAR(42) UNIQUE,
     is_active BOOLEAN DEFAULT TRUE,
     is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -47,15 +46,34 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- Essential metadata for fast queries
     amount DECIMAL(18,8) NOT NULL,
     direction ENUM('credit','debit') NOT NULL,
     tx_hash VARCHAR(66) UNIQUE NOT NULL,
     description VARCHAR(500),
     status ENUM('pending','confirmed','failed') DEFAULT 'pending',
+    
+    -- User and context
     user_id INT NOT NULL,
     event_id INT,
     item_id INT,
+    
+    -- Blockchain metadata for easy querying
+    block_number INT,
+    gas_used INT,
+    gas_price DECIMAL(18,8),
+    
+    -- Trade-specific metadata (for P2P trades)
+    trade_type VARCHAR(50),  -- 'item_purchase', 'p2p_trade', 'transfer', 'event_registration'
+    counterparty_address VARCHAR(42),  -- Other party in the trade
+    item_name VARCHAR(255),  -- For trades
+    item_category VARCHAR(100),  -- For trades
+    
+    -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    mined_at TIMESTAMP NULL,
+    
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (event_id) REFERENCES events(id),
     FOREIGN KEY (item_id) REFERENCES items(id)
@@ -85,11 +103,15 @@ INSERT INTO events (id, name, category, start_datetime, end_datetime, price, loc
 (9, 'Vietnamese Culture Festival', 'Cultural', '2025-08-15 14:00:00', '2025-08-15 20:00:00', 25, 'Hanoi', 80, 'Culture, Traditional, Festival', 'upcoming', 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop'),
 (10, 'Startup Pitch Competition', 'Business', '2025-09-05 13:00:00', '2025-09-05 18:00:00', 100, 'Ho Chi Minh City', 30, 'Startup, Pitch, Innovation', 'upcoming', 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=400&fit=crop');
 
-INSERT INTO users (id, username, email, wallet_address, password_hash, is_active, is_admin) VALUES
-(1, 'admin', 'admin@swinburne.edu.au', NULL, 'cos30049', true, true),
-(2, 'user1', 'user1@swinburne.edu.au', NULL, 'cos30049', true, false),
-(3, 'user2', 'user2@swinburne.edu.au', NULL, 'cos30049', true, false);
+INSERT INTO users (id, username, email, password_hash, is_active, is_admin) VALUES
+(1, 'admin', 'admin@swinburne.edu.au', 'cos30049', true, true),
+(2, 'user1', 'user1@swinburne.edu.au', 'cos30049', true, false),
+(3, 'user2', 'user2@swinburne.edu.au', 'cos30049', true, false);
 
 -- Create indexes for better performance
 CREATE INDEX idx_items_name ON items(name);
 CREATE INDEX idx_events_name ON events(name);
+CREATE INDEX idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX idx_transactions_tx_hash ON transactions(tx_hash);
+CREATE INDEX idx_transactions_trade_type ON transactions(trade_type);
+CREATE INDEX idx_transactions_created_at ON transactions(created_at);
