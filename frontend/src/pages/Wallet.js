@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Box, Typography, Button, Paper, Grid, Stack, Chip, CircularProgress, Dialog, DialogTitle, DialogActions, TextField, Slide } from "@mui/material";
-import { History, Send, GetApp, AccountBalanceWallet, CheckCircle, ArrowBack } from "@mui/icons-material";
+import { History, Send, AccountBalanceWallet, CheckCircle, ArrowBack } from "@mui/icons-material";
 import { ethers } from "ethers";
-import { fetchTransactions, fetchUserBalance, sendGold, getUserStatistics } from "../api";
+import { fetchTransactions, sendGold } from "../api";
 import { formatGold } from "../goldUtils";
 import { useWalletContext } from "../contexts/WalletContext";
 
@@ -24,7 +24,7 @@ function Wallet({ logout }) {
   const [sendGoldDialog, setSendGoldDialog] = useState(false);
   const [sendAmount, setSendAmount] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
-  const [statistics, setStatistics] = useState(null);
+
   const [isTransferring, setIsTransferring] = useState(false);
 
   // Use wallet context
@@ -37,12 +37,9 @@ function Wallet({ logout }) {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     setUserProfile(user);
 
-    Promise.all([fetchUserBalance(user?.wallet_address), fetchTransactions(user?.id), getUserStatistics(user?.id)])
-      .then(([rawBalance, txs, stats]) => {
-        const formatted = formatGold(rawBalance);
-        setOnchainBalance(formatted);
+    fetchTransactions(user?.id)
+      .then((txs) => {
         setTransactionHistory(txs);
-        setStatistics(stats);
       })
       .catch((err) => setError(err.message));
 
@@ -65,24 +62,8 @@ function Wallet({ logout }) {
           // User disconnected their wallet
           disconnect();
         } else {
-          // User switched accounts
-          const newAddress = accounts[0];
-          try {
-            // Update wallet address in database
-            const { updateWalletAddress } = await import("../api");
-            const updatedUser = await updateWalletAddress(newAddress);
-            setUserProfile(updatedUser);
-          } catch (error) {
-            console.error("Failed to update wallet address in database:", error);
-            // Fallback to localStorage update
-            const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-            const updatedUser = {
-              ...currentUser,
-              wallet_address: newAddress,
-            };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            setUserProfile(updatedUser);
-          }
+          // User switched accounts - wallet context will handle this automatically
+          console.log("Account changed to:", accounts[0]);
 
           // Refresh data by updating state instead of reloading
           // The wallet context will handle the state updates automatically
@@ -341,123 +322,10 @@ function Wallet({ logout }) {
         <Stack spacing={3} sx={{ height: "100%" }}>
           <WalletButton icon={<History />} label="View History" onClick={() => setCurrentView("history")} />
           <WalletButton icon={<Send />} label="Send Gold" onClick={() => setSendGoldDialog(true)} />
-          <WalletButton icon={<GetApp />} label="Statistics" onClick={() => setCurrentView("statistics")} />
         </Stack>
       </Box>
     </Box>
   );
-
-  const _renderStatisticsView = () => {
-    if (!statistics) {
-      return (
-        <Grid alignItems="center" container justifyContent="center" spacing={4}>
-          <Typography>Loading statistics...</Typography>
-        </Grid>
-      );
-    }
-
-    const totalSpentPercentage =
-      statistics.total_spent > 0 ? Math.round(((statistics.spending_breakdown.events + statistics.spending_breakdown.items + statistics.spending_breakdown.transfers) / statistics.total_spent) * 100) : 0;
-
-    return (
-      <>
-        {/* Back Button */}
-        <Box sx={{ mb: 4 }}>
-          <Button
-            onClick={() => setCurrentView("main")}
-            startIcon={<ArrowBack />}
-            sx={{
-              color: "#666",
-              fontFamily: "Poppins",
-              fontWeight: 600,
-              textTransform: "none",
-              "&:hover": {
-                color: "#ff001e",
-              },
-            }}
-          >
-            Back to Wallet
-          </Button>
-        </Box>
-
-        <Grid alignItems="center" container justifyContent="center" spacing={4}>
-          <Grid item md={6} xs={12}>
-            <Paper elevation={3} sx={{ ...cardBase, textAlign: "center", minHeight: "400px" }}>
-              <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 4 }} variant="h5">
-                Spending Statistics
-              </Typography>
-              <Box
-                sx={{
-                  width: 200,
-                  height: 200,
-                  borderRadius: "50%",
-                  background: `conic-gradient(#ff001e 0deg ${totalSpentPercentage * 3.6}deg, #f0f0f0 ${totalSpentPercentage * 3.6}deg 360deg)`,
-                  mx: "auto",
-                  mb: 3,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 120,
-                    height: 120,
-                    borderRadius: "50%",
-                    backgroundColor: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828" }} variant="h6">
-                    {totalSpentPercentage}%
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e", textAlign: "center" }} variant="body1">
-                Events: {Math.round(statistics.spending_percentage.events)}%
-                <br />
-                Items: {Math.round(statistics.spending_percentage.items)}%
-                <br />
-                Transfers: {Math.round(statistics.spending_percentage.transfers)}%
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item md={6} xs={12}>
-            <Paper elevation={3} sx={{ ...cardBase, minHeight: "400px" }}>
-              <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }} variant="h5">
-                Summary
-              </Typography>
-              <Stack spacing={3}>
-                <Box>
-                  <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#4caf50" }} variant="h6">
-                    Total Earned: {formatGold(statistics.total_earned)} GOLD
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#ff001e" }} variant="h6">
-                    Total Spent: {formatGold(statistics.total_spent)} GOLD
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
-                    Events: {formatGold(statistics.spending_breakdown.events)} GOLD
-                  </Typography>
-                  <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
-                    Items: {formatGold(statistics.spending_breakdown.items)} GOLD
-                  </Typography>
-                  <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="body1">
-                    Transfers: {formatGold(statistics.spending_breakdown.transfers)} GOLD
-                  </Typography>
-                </Box>
-              </Stack>
-            </Paper>
-          </Grid>
-        </Grid>
-      </>
-    );
-  };
 
   const _renderHistoryView = () => (
     <>
@@ -950,7 +818,7 @@ function Wallet({ logout }) {
         >
           {/* View Selection */}
           {_currentView === "main" && _renderMainView()}
-          {_currentView === "statistics" && _renderStatisticsView()}
+
           {_currentView === "history" && _renderHistoryView()}
           {_currentView === "received" && _renderReceivedView()}
         </Box>

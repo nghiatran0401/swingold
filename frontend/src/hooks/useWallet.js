@@ -297,7 +297,7 @@ export const useWallet = () => {
     if (!signer || !SWINGOLD_ADDRESS) throw new Error("No signer or contract address available");
     const contract = new ethers.Contract(SWINGOLD_ADDRESS, SwingoldABI, signer);
     const tx = await contract.approve(spenderAddress, amount);
-    return await tx.wait();
+    return tx; // Return the transaction object, let the caller handle waiting
   };
 
   // Transfer tokens
@@ -305,7 +305,7 @@ export const useWallet = () => {
     if (!signer || !SWINGOLD_ADDRESS) throw new Error("No signer or contract address available");
     const contract = new ethers.Contract(SWINGOLD_ADDRESS, SwingoldABI, signer);
     const tx = await contract.transfer(toAddress, amount);
-    return await tx.wait();
+    return tx; // Return the transaction object, let the caller handle waiting
   };
 
   // Create a trade
@@ -313,7 +313,7 @@ export const useWallet = () => {
     if (!signer || !TRADE_MANAGER_ADDRESS) throw new Error("No signer or contract address available");
     const contract = new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, signer);
     const tx = await contract.createTrade(sellerAddress, itemName, itemCategory, price);
-    return await tx.wait();
+    return tx; // Return the transaction object, let the caller handle waiting
   };
 
   // Confirm a trade
@@ -321,7 +321,7 @@ export const useWallet = () => {
     if (!signer || !TRADE_MANAGER_ADDRESS) throw new Error("No signer or contract address available");
     const contract = new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, signer);
     const tx = await contract.confirmTrade(itemName);
-    return await tx.wait();
+    return tx; // Return the transaction object, let the caller handle waiting
   };
 
   // Cancel a trade
@@ -329,7 +329,7 @@ export const useWallet = () => {
     if (!signer || !TRADE_MANAGER_ADDRESS) throw new Error("No signer or contract address available");
     const contract = new ethers.Contract(TRADE_MANAGER_ADDRESS, TradeManagerABI, signer);
     const tx = await contract.cancelTrade(itemName);
-    return await tx.wait();
+    return tx; // Return the transaction object, let the caller handle waiting
   };
 
   // Get trade info

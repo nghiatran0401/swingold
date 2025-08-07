@@ -105,24 +105,6 @@ describe("API Functions", () => {
     });
   });
 
-  describe("fetchUserBalance", () => {
-    test("successful balance fetch", async () => {
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ balance: "1000000000000000000" }),
-      });
-
-      const result = await api.fetchUserBalance("0x1234");
-
-      expect(fetch).toHaveBeenCalledWith(`${process.env.REACT_APP_API_BASE_URL}/transactions/onchain/balance/0x1234`);
-      expect(result).toBe("1000000000000000000");
-    });
-
-    test("throws error when no wallet address", async () => {
-      await expect(api.fetchUserBalance()).rejects.toThrow("No wallet address provided");
-    });
-  });
-
   describe("sendGold", () => {
     test("successful gold transfer", async () => {
       const mockResponse = { id: 1, message: "Transfer successful" };

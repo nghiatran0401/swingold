@@ -79,7 +79,7 @@ class TransactionService:
     def record_transfer(
         self,
         user_id: int,
-        amount: float,
+        amount: str,
         tx_hash: str,
         recipient_address: str,
         **kwargs
@@ -87,8 +87,9 @@ class TransactionService:
         """
         Record a Swingold transfer transaction.
         """
+        # Store amount as string to handle large wei values
         transaction = models.Transaction(
-            amount=amount,
+            amount=amount,  # Store as string
             direction=models.DirectionEnum.debit,  # User sends tokens
             tx_hash=tx_hash,
             description=f"Transfer to {recipient_address[:8]}... - tx: {tx_hash}",

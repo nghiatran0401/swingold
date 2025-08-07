@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     
     -- Essential metadata for fast queries
-    amount DECIMAL(18,8) NOT NULL,
+    amount VARCHAR(100) NOT NULL,
     direction ENUM('credit','debit') NOT NULL,
     tx_hash VARCHAR(66) UNIQUE NOT NULL,
     description VARCHAR(500),
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     -- Blockchain metadata for easy querying
     block_number INT,
     gas_used INT,
-    gas_price DECIMAL(18,8),
+    gas_price VARCHAR(100),
     
     -- Trade-specific metadata (for P2P trades)
     trade_type VARCHAR(50),  -- 'item_purchase', 'p2p_trade', 'transfer', 'event_registration'

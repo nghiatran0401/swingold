@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Header
 from sqlalchemy.orm import Session
 from services.database import get_db
 import services.models as models
@@ -13,29 +13,46 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.post("/send", response_model=TransactionOut, status_code=201)
+@router.post("/send", status_code=201)
 def send_gold(
     transfer_data: dict = Body(...),
     db: Session = Depends(get_db),
-    x_user_id: str = Query(..., alias="X-User-Id")
+    x_user_id: str = Header(..., alias="X-User-Id")
 ):
     """
     Send Swingold tokens to another user.
     Expects: {recipient_address, amount, tx_hash}
     """
     try:
-        # Validate required fields
+        # Extract and validate data
         recipient_address = transfer_data.get("recipient_address")
         if not recipient_address:
             raise HTTPException(status_code=400, detail="recipient_address is required")
         
         amount = transfer_data.get("amount")
-        if amount is None or amount <= 0:
-            raise HTTPException(status_code=400, detail="amount must be positive")
+        if amount is None:
+            raise HTTPException(status_code=400, detail="amount is required")
         
         tx_hash = transfer_data.get("tx_hash")
         if not tx_hash:
             raise HTTPException(status_code=400, detail="tx_hash is required")
+        
+        # Validate amount format
+        try:
+            amount_str = str(amount)
+            # For very large numbers (wei), we'll store as string in database
+            # but validate it's a valid number
+            if not amount_str.isdigit():
+                raise HTTPException(status_code=400, detail="amount must be a valid positive integer")
+        except (ValueError, TypeError) as e:
+            raise HTTPException(status_code=400, detail="amount must be a valid number")
+        
+        if int(amount) <= 0:
+            raise HTTPException(status_code=400, detail="amount must be positive")
+        
+        # Validate recipient address format
+        if not recipient_address.startswith("0x") or len(recipient_address) != 42:
+            raise HTTPException(status_code=400, detail="Invalid recipient address format")
 
         # Find sender user
         user_id = int(x_user_id)
@@ -43,17 +60,7 @@ def send_gold(
         if not sender:
             raise HTTPException(status_code=404, detail="Sender user not found")
 
-        # Check if sender has a wallet address
-        if not sender.wallet_address:
-            raise HTTPException(status_code=400, detail="Sender must have a connected wallet")
 
-        # Prevent sending to yourself
-        if sender.wallet_address.lower() == recipient_address.lower():
-            raise HTTPException(status_code=400, detail="Cannot send gold to yourself")
-
-        # Validate recipient address format (basic check)
-        if not recipient_address.startswith("0x") or len(recipient_address) != 42:
-            raise HTTPException(status_code=400, detail="Invalid recipient address format")
 
         # Use transaction service for hybrid approach
         transaction_service = create_transaction_service(db)
@@ -66,7 +73,7 @@ def send_gold(
             recipient_address=recipient_address
         )
         
-        return transaction
+        return {"message": "Transfer recorded successfully", "transaction_id": transaction.id}
         
     except HTTPException:
         raise
@@ -108,4 +115,6 @@ def get_user_balance(address: str):
         balance = get_balance(address)
         return {"address": address, "balance": balance}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch balance: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to fetch balance: {str(e)}")
+
+ 

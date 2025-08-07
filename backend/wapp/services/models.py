@@ -60,7 +60,7 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Essential metadata for fast queries
-    amount = Column(Numeric(18, 8), nullable=False)
+    amount = Column(String(100), nullable=False)  # Store as string to handle large wei values
     direction = Column(Enum(DirectionEnum), nullable=False)
     tx_hash = Column(String(66), unique=True, nullable=False)
     description = Column(String(500), nullable=True)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchItems, recordOnchainPurchase, fetchUserBalance } from "../api";
+import { fetchItems, recordOnchainPurchase } from "../api";
 import { Paper, Box, Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Stack, Dialog, DialogActions, DialogTitle, Alert, Chip, Slide } from "@mui/material";
 import { Search, FilterList, AccountBalanceWallet } from "@mui/icons-material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -182,7 +182,6 @@ function Items({ logout }) {
 
   return (
     <>
-
       {loading && (
         <Box
           sx={{

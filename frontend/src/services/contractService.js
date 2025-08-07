@@ -84,7 +84,7 @@ class ContractService {
       const signer = await this.getSigner();
       const tokenContract = this.getTokenContract(signer);
       const tx = await tokenContract.approve(spenderAddress, amount);
-      return await tx.wait();
+      return tx; // Return the transaction object, let the caller handle waiting
     } catch (error) {
       console.error("Error approving tokens:", error);
       throw error;
@@ -99,7 +99,7 @@ class ContractService {
       const signer = await this.getSigner();
       const tradeContract = this.getTradeManagerContract(signer);
       const tx = await tradeContract.createTrade(sellerAddress, itemName, itemCategory, price);
-      return await tx.wait();
+      return tx; // Return the transaction object, let the caller handle waiting
     } catch (error) {
       console.error("Error creating trade:", error);
       throw error;
@@ -114,7 +114,7 @@ class ContractService {
       const signer = await this.getSigner();
       const tradeContract = this.getTradeManagerContract(signer);
       const tx = await tradeContract.confirmTrade(itemName);
-      return await tx.wait();
+      return tx; // Return the transaction object, let the caller handle waiting
     } catch (error) {
       console.error("Error confirming trade:", error);
       throw error;
@@ -129,7 +129,7 @@ class ContractService {
       const signer = await this.getSigner();
       const tradeContract = this.getTradeManagerContract(signer);
       const tx = await tradeContract.cancelTrade(itemName);
-      return await tx.wait();
+      return tx; // Return the transaction object, let the caller handle waiting
     } catch (error) {
       console.error("Error canceling trade:", error);
       throw error;
@@ -168,7 +168,7 @@ class ContractService {
       const signer = await this.getSigner();
       const tokenContract = this.getTokenContract(signer);
       const tx = await tokenContract.transfer(toAddress, amount);
-      return await tx.wait();
+      return tx; // Return the transaction object, let the caller handle waiting
     } catch (error) {
       console.error("Error transferring tokens:", error);
       throw error;

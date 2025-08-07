@@ -1,7 +1,7 @@
 # https://docs.pydantic.dev/1.10/usage/schema/
 # This schema is mainly use for data validation and response
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import datetime
 from typing import Optional, List
 from services.models import StatusEnum, DirectionEnum, ItemEventStatusEnum
@@ -94,7 +94,7 @@ class TransactionCreate(TransactionBase):
 
 class TransactionOut(BaseModel):
     id: int
-    amount: float
+    amount: str  # Changed to string to handle wei amounts
     direction: DirectionEnum
     tx_hash: str
     description: Optional[str]

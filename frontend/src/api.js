@@ -113,15 +113,6 @@ export const deleteItem = async (itemId, userId) => {
   return res.json();
 };
 
-// Get user on-chain balance
-export const fetchUserBalance = async (walletAddress) => {
-  if (!walletAddress) throw new Error("No wallet address provided");
-  const res = await fetch(`${API_BASE_URL}/transactions/onchain/balance/${walletAddress}`);
-  if (!res.ok) throw new Error("Failed to fetch user balance");
-  const data = await res.json();
-  return data.balance;
-};
-
 // Toggle Event enrollment
 export const toggleEventEnrollment = async (eventId) => {
   const res = await fetch(`${API_BASE_URL}/events/${eventId}/enroll`, { method: "PATCH" });
@@ -170,11 +161,5 @@ export const sendGold = async (transferData) => {
 export const getTransferHistory = async (userId) => {
   const res = await fetch(`${API_BASE_URL}/transfers/history/${userId}`);
   if (!res.ok) throw new Error("Failed to fetch transfer history");
-  return res.json();
-};
-
-export const getUserStatistics = async (userId) => {
-  const res = await fetch(`${API_BASE_URL}/statistics/user/${userId}`);
-  if (!res.ok) throw new Error("Failed to fetch user statistics");
   return res.json();
 };
