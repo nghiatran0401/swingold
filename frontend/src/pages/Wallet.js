@@ -1,6 +1,23 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, Button, Paper, Grid, Stack, Chip, CircularProgress, Dialog, DialogTitle, DialogActions, TextField, Slide } from "@mui/material";
-import { History, Send, AccountBalanceWallet, CheckCircle, ArrowBack } from "@mui/icons-material";
+import { Box, Typography, Button, Paper, Grid, Stack, Chip, CircularProgress, Dialog, DialogTitle, DialogActions, TextField, Slide, Tabs, Tab, InputAdornment, IconButton, Tooltip, Divider, Avatar } from "@mui/material";
+import {
+  History,
+  Send,
+  AccountBalanceWallet,
+  CheckCircle,
+  ArrowBack,
+  Search,
+  FilterList,
+  Download,
+  Visibility,
+  VisibilityOff,
+  TrendingUp,
+  TrendingDown,
+  ShoppingCart,
+  Event,
+  AccountBalance,
+  Receipt,
+} from "@mui/icons-material";
 import { ethers } from "ethers";
 import { fetchTransactions, sendGold } from "../api";
 import { formatGold } from "../goldUtils";
@@ -27,8 +44,92 @@ function Wallet({ logout }) {
 
   const [isTransferring, setIsTransferring] = useState(false);
 
+  // Enhanced transaction history states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [currentTab, setCurrentTab] = useState(0);
+  const [showTransactionDetails, setShowTransactionDetails] = useState({});
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [transactionDetailsDialog, setTransactionDetailsDialog] = useState(false);
+
   // Use wallet context
   const { isConnected, account, tokenBalance, formatTokenBalance, transferTokens, connect, disconnect, loadTokenBalance } = useWalletContext();
+
+  // Helper functions for enhanced transaction history
+  const formatTransactionAmount = (amount) => {
+    if (!amount) return "0";
+    const num = parseFloat(amount);
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(2) + "M";
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(2) + "K";
+    }
+    return num.toFixed(2);
+  };
+
+  const getTransactionTypeIcon = (tx) => {
+    if (tx.trade_type === "item_purchase") return <ShoppingCart />;
+    if (tx.trade_type === "event_registration") return <Event />;
+    if (tx.trade_type === "p2p_trade") return <AccountBalance />;
+    if (tx.trade_type === "transfer") return <Receipt />;
+    return <Receipt />;
+  };
+
+  const getTransactionTypeColor = (tx) => {
+    if (tx.trade_type === "item_purchase") return "#2196f3";
+    if (tx.trade_type === "event_registration") return "#9c27b0";
+    if (tx.trade_type === "p2p_trade") return "#ff9800";
+    if (tx.trade_type === "transfer") return "#607d8b";
+    return "#757575";
+  };
+
+  const getTransactionTypeLabel = (tx) => {
+    if (tx.trade_type === "item_purchase") return "Purchase";
+    if (tx.trade_type === "event_registration") return "Event";
+    if (tx.trade_type === "p2p_trade") return "Trade";
+    if (tx.trade_type === "transfer") return "Transfer";
+    return "Transaction";
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "confirmed":
+        return "#4caf50";
+      case "pending":
+        return "#ff9800";
+      case "failed":
+        return "#f44336";
+      default:
+        return "#757575";
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "confirmed":
+        return <CheckCircle />;
+      case "pending":
+        return <CircularProgress size={16} />;
+      case "failed":
+        return <VisibilityOff />;
+      default:
+        return <Receipt />;
+    }
+  };
+
+  // Group transactions by date
+  const groupTransactionsByDate = (transactions) => {
+    const groups = {};
+    transactions.forEach((tx) => {
+      const date = new Date(tx.created_at).toLocaleDateString();
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(tx);
+    });
+    return Object.entries(groups).sort(([a], [b]) => new Date(b) - new Date(a));
+  };
 
   // Load user from localStorage when on mount
   useEffect(() => {
@@ -327,51 +428,330 @@ function Wallet({ logout }) {
     </Box>
   );
 
-  const _renderHistoryView = () => (
-    <>
-      {/* Back Button */}
-      <Box sx={{ mb: 4 }}>
-        <Button
-          onClick={() => setCurrentView("main")}
-          startIcon={<ArrowBack />}
-          sx={{
-            color: "#666",
-            fontFamily: "Poppins",
-            fontWeight: 600,
-            textTransform: "none",
-            "&:hover": {
-              color: "#ff001e",
-            },
-          }}
-        >
-          Back to Wallet
-        </Button>
-      </Box>
+  const _renderHistoryView = () => {
+    const filteredTransactions = transactionHistory.filter((tx) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        tx.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.tx_hash?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.counterparty_address?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3 }} variant="h5">
-            Transaction History
-          </Typography>
-        </Grid>
-        {transactionHistory.length === 0 ? (
-          <Grid item xs={12}>
-            <Paper elevation={3} sx={{ ...cardBase, textAlign: "center", py: 8 }}>
-              <Typography sx={{ fontFamily: "Poppins", color: "#666" }} variant="h6">
-                No transactions found
-              </Typography>
+      const matchesStatus = statusFilter === "all" || tx.status === statusFilter;
+      const matchesType = typeFilter === "all" || tx.trade_type === typeFilter;
+
+      return matchesSearch && matchesStatus && matchesType;
+    });
+
+    return (
+      <>
+        {/* Back Button */}
+        <Box sx={{ mb: 4 }}>
+          <Button
+            onClick={() => setCurrentView("main")}
+            startIcon={<ArrowBack />}
+            sx={{
+              color: "#666",
+              fontFamily: "Poppins",
+              fontWeight: 600,
+              textTransform: "none",
+              "&:hover": {
+                color: "#ff001e",
+              },
+            }}
+          >
+            Back to Wallet
+          </Button>
+        </Box>
+
+        {/* Main Layout - Sidebar + Content */}
+        <Box sx={{ display: "flex", gap: 3, height: "calc(100vh - 200px)" }}>
+          {/* Left Sidebar - Filters & Search */}
+          <Box sx={{ width: "40%", display: "flex", flexDirection: "column" }}>
+            {/* Header with Title and Count */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 3,
+                p: 2,
+                backgroundColor: "#fff",
+                borderRadius: "16px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", fontSize: "1.3rem" }}>Transaction History</Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  backgroundColor: "#ff001e",
+                  color: "#fff",
+                  fontFamily: "Poppins",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  boxShadow: "0 2px 8px rgba(255, 0, 30, 0.3)",
+                }}
+              >
+                {filteredTransactions.length}
+              </Box>
+            </Box>
+
+            {/* Search Box */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                mb: 3,
+                backgroundColor: "#f8f9ff",
+                borderRadius: "12px",
+                border: "1px solid #e8eaff",
+              }}
+            >
+              <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2, fontSize: "0.95rem" }}>🔍 Search Transactions</Typography>
+              <TextField
+                placeholder="Search by address, hash, or description..."
+                fullWidth
+                size="small"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "8px",
+                    backgroundColor: "#fff",
+                    fontFamily: "Poppins",
+                    "&:hover fieldset": {
+                      borderColor: "#ff001e",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#ff001e",
+                    },
+                  },
+                }}
+              />
             </Paper>
-          </Grid>
-        ) : (
-          transactionHistory.map((tx) => (
-            <Grid item key={tx.id} xs={12}>
-              <TransactionCard tx={tx} detailed={true} />
-            </Grid>
-          ))
-        )}
-      </Grid>
-    </>
-  );
+
+            {/* Filters Section */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                backgroundColor: "#f8f9ff",
+                borderRadius: "16px",
+                border: "1px solid #e8eaff",
+                flex: 1,
+                overflow: "auto",
+              }}
+            >
+              <Typography sx={{ fontFamily: "Poppins", fontWeight: 700, color: "#2A2828", mb: 3, fontSize: "1.1rem" }}>Filter & Sort Options</Typography>
+
+              {/* Sort by Section */}
+              <Box sx={{ mb: 4 }}>
+                <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2, fontSize: "0.9rem" }}>🔄 Sort by</Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {[
+                    { key: "date", label: "Date", icon: "📅" },
+                    { key: "amount", label: "Amount", icon: "💰" },
+                    { key: "type", label: "Type", icon: "🏷️" },
+                  ].map(({ key, label, icon }) => (
+                    <Button
+                      key={key}
+                      onClick={() => setCurrentTab(key === "date" ? 0 : key === "amount" ? 1 : 2)}
+                      sx={{
+                        justifyContent: "flex-start",
+                        textAlign: "left",
+                        backgroundColor: currentTab === (key === "date" ? 0 : key === "amount" ? 1 : 2) ? "#ff001e" : "transparent",
+                        color: currentTab === (key === "date" ? 0 : key === "amount" ? 1 : 2) ? "#fff" : "#666",
+                        fontFamily: "Poppins",
+                        fontWeight: "600",
+                        fontSize: "0.85rem",
+                        borderRadius: "8px",
+                        py: 1.5,
+                        px: 2,
+                        border: currentTab === (key === "date" ? 0 : key === "amount" ? 1 : 2) ? "none" : "1px solid #e0e0e0",
+                        "&:hover": {
+                          backgroundColor: currentTab === (key === "date" ? 0 : key === "amount" ? 1 : 2) ? "#ff001e" : "#f0f0f0",
+                        },
+                      }}
+                    >
+                      {icon} {label}
+                    </Button>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Type Filter Section */}
+              <Box sx={{ mb: 4 }}>
+                <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2, fontSize: "0.9rem" }}>🎯 Filter by Type</Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {[
+                    { key: "all", label: "All", icon: "🌟" },
+                    { key: "transfer", label: "Transfer", icon: "↔️" },
+                    { key: "item_purchase", label: "Purchase", icon: "🛒" },
+                    { key: "p2p_trade", label: "P2P Trade", icon: "🤝" },
+                  ].map(({ key, label, icon }) => (
+                    <Button
+                      key={key}
+                      onClick={() => setTypeFilter(key)}
+                      sx={{
+                        justifyContent: "flex-start",
+                        textAlign: "left",
+                        backgroundColor: typeFilter === key ? "#ff001e" : "transparent",
+                        color: typeFilter === key ? "#fff" : "#666",
+                        fontFamily: "Poppins",
+                        fontWeight: "600",
+                        fontSize: "0.85rem",
+                        borderRadius: "8px",
+                        py: 1.5,
+                        px: 2,
+                        border: typeFilter === key ? "none" : "1px solid #e0e0e0",
+                        "&:hover": {
+                          backgroundColor: typeFilter === key ? "#ff001e" : "#f0f0f0",
+                        },
+                      }}
+                    >
+                      {icon} {label}
+                    </Button>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Status Filter Section */}
+              <Box sx={{ mb: 4 }}>
+                <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", mb: 2, fontSize: "0.9rem" }}>📊 Filter by Status</Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {[
+                    { key: "all", label: "All", icon: "🌟" },
+                    { key: "confirmed", label: "Confirmed", icon: "✅" },
+                    { key: "pending", label: "Pending", icon: "⏳" },
+                    { key: "failed", label: "Failed", icon: "❌" },
+                  ].map(({ key, label, icon }) => (
+                    <Button
+                      key={key}
+                      onClick={() => setStatusFilter(key)}
+                      sx={{
+                        justifyContent: "flex-start",
+                        textAlign: "left",
+                        backgroundColor: statusFilter === key ? "#ff001e" : "transparent",
+                        color: statusFilter === key ? "#fff" : "#666",
+                        fontFamily: "Poppins",
+                        fontWeight: "600",
+                        fontSize: "0.85rem",
+                        borderRadius: "8px",
+                        py: 1.5,
+                        px: 2,
+                        border: statusFilter === key ? "none" : "1px solid #e0e0e0",
+                        "&:hover": {
+                          backgroundColor: statusFilter === key ? "#ff001e" : "#f0f0f0",
+                        },
+                      }}
+                    >
+                      {icon} {label}
+                    </Button>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Reset Button */}
+              <Button
+                onClick={() => {
+                  setTypeFilter("all");
+                  setStatusFilter("all");
+                  setCurrentTab(0);
+                  setSearchTerm("");
+                }}
+                fullWidth
+                sx={{
+                  fontFamily: "Poppins",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  color: "#666",
+                  backgroundColor: "rgba(255, 255, 255, 0.8)",
+                  border: "1px solid #e0e0e0",
+                  borderRadius: "8px",
+                  py: 1.5,
+                  "&:hover": {
+                    backgroundColor: "#f0f0f0",
+                    color: "#ff001e",
+                  },
+                }}
+              >
+                🔄 Reset All Filters
+              </Button>
+            </Paper>
+          </Box>
+
+          {/* Right Content - Transaction List */}
+          <Box sx={{ width: "60%", display: "flex", flexDirection: "column" }}>
+            {/* Transaction List Header */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 3,
+                p: 2,
+                backgroundColor: "#fff",
+                borderRadius: "16px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Typography sx={{ fontFamily: "Poppins", fontWeight: 600, color: "#2A2828", fontSize: "1.1rem" }}>Transactions ({filteredTransactions.length})</Typography>
+              <Typography sx={{ fontFamily: "Poppins", color: "#666", fontSize: "0.85rem" }}>{filteredTransactions.length === 0 ? "No transactions" : "Showing all transactions"}</Typography>
+            </Box>
+
+            {/* Transaction List */}
+            <Box
+              sx={{
+                flex: 1,
+                overflow: "auto",
+                pr: 1,
+                "&::-webkit-scrollbar": {
+                  width: "6px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  backgroundColor: "#f1f1f1",
+                  borderRadius: "3px",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "#ff001e",
+                  borderRadius: "3px",
+                },
+              }}
+            >
+              {filteredTransactions.length === 0 ? (
+                <Paper
+                  elevation={3}
+                  sx={{
+                    textAlign: "center",
+                    py: 8,
+                    backgroundColor: "#fff",
+                    borderRadius: "16px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <Typography sx={{ fontFamily: "Poppins", color: "#666", mb: 2 }} variant="h6">
+                    {transactionHistory.length === 0 ? "No transactions found" : "No transactions match your filters"}
+                  </Typography>
+                  {transactionHistory.length > 0 && <Typography sx={{ fontFamily: "Poppins", color: "#999", fontSize: "0.9rem" }}>Try adjusting your filters in the sidebar</Typography>}
+                </Paper>
+              ) : (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {filteredTransactions.map((tx) => (
+                    <TransactionCard key={tx.id} tx={tx} detailed={true} />
+                  ))}
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Box>
+      </>
+    );
+  };
 
   const _renderReceivedView = () => {
     return (
@@ -423,6 +803,37 @@ function Wallet({ logout }) {
     );
   };
 
+  // Helper function to format date to Vietnam timezone
+  const formatDateToVietnam = (dateString) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+    } catch (error) {
+      return new Date(dateString).toLocaleString();
+    }
+  };
+
+  // Helper function to format amount from wei to human readable
+  const formatAmount = (amount) => {
+    if (!amount) return "0";
+    // Convert from wei (string) to ether
+    try {
+      return ethers.formatUnits(amount, 18);
+    } catch (error) {
+      return amount; // Fallback to original if conversion fails
+    }
+  };
+
   const TransactionCard = ({ tx, detailed }) => (
     <Paper
       elevation={0}
@@ -456,64 +867,165 @@ function Wallet({ logout }) {
         },
       }}
     >
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <Box sx={{ flex: 1 }}>
+          {/* Transaction Type and Icon */}
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                backgroundColor: tx.direction === "credit" ? "rgba(76, 175, 80, 0.1)" : "rgba(255, 0, 30, 0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mr: 2,
+              }}
+            >
+              <Typography sx={{ fontSize: "1.2rem" }}>{tx.direction === "credit" ? "↗️" : "↘️"}</Typography>
+            </Box>
+            <Box>
+              <Typography
+                sx={{
+                  fontFamily: "Poppins",
+                  fontWeight: "600",
+                  color: "#2A2828",
+                  fontSize: "0.9rem",
+                }}
+              >
+                {tx.direction === "credit" ? "Received Transfer" : "Sent Transfer"}
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: "Poppins",
+                  color: "#666",
+                  fontSize: "0.75rem",
+                }}
+              >
+                {formatDateToVietnam(tx.created_at)}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Amount */}
           <Typography
             sx={{
               fontFamily: "Poppins",
               fontWeight: "700",
               color: tx.direction === "credit" ? "#4caf50" : "#ff001e",
-              fontSize: detailed ? "1.5rem" : "1.2rem",
-              mb: 1,
+              fontSize: detailed ? "1.8rem" : "1.4rem",
+              mb: 2,
             }}
-            variant={detailed ? "h5" : "h6"}
           >
             {tx.direction === "credit" ? "+" : "-"}
-            {tx.amount} GOLD
+            {formatAmount(tx.amount)} SG
           </Typography>
-          <Typography
-            sx={{
-              fontFamily: "Poppins",
-              color: "#666",
-              fontSize: detailed ? "0.95rem" : "0.85rem",
-              lineHeight: 1.5,
-              mb: 1,
-            }}
-            variant={detailed ? "body1" : "body2"}
-          >
-            {tx.created_at ? new Date(tx.created_at).toLocaleString() : ""}
-            <br />
-            {tx.description}
-          </Typography>
-          {tx.tx_hash && (
+
+          {/* Description */}
+          {tx.description && (
             <Typography
               sx={{
-                fontFamily: "monospace",
-                color: "#888",
-                fontSize: "0.75rem",
-                backgroundColor: "#f5f5f5",
-                padding: "2px 6px",
-                borderRadius: "4px",
+                fontFamily: "Poppins",
+                color: "#666",
+                fontSize: "0.9rem",
+                mb: 2,
+                lineHeight: 1.4,
               }}
-              variant="caption"
             >
-              Tx: {tx.tx_hash.slice(0, 10)}...{tx.tx_hash.slice(-8)}
+              {tx.description}
             </Typography>
           )}
+
+          {/* Counterparty Address */}
+          {tx.counterparty_address && (
+            <Box sx={{ mb: 2 }}>
+              <Typography
+                sx={{
+                  fontFamily: "Poppins",
+                  color: "#666",
+                  fontSize: "0.85rem",
+                  fontWeight: "600",
+                  mb: 0.5,
+                }}
+              >
+                {tx.direction === "credit" ? "From" : "To"}:
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: "monospace",
+                  color: "#888",
+                  fontSize: "0.8rem",
+                  backgroundColor: "#f5f5f5",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  display: "inline-block",
+                }}
+              >
+                {tx.counterparty_address}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Transaction Hash */}
+          {tx.tx_hash && (
+            <Box sx={{ mb: 2 }}>
+              <Typography
+                sx={{
+                  fontFamily: "Poppins",
+                  color: "#666",
+                  fontSize: "0.85rem",
+                  fontWeight: "600",
+                  mb: 0.5,
+                }}
+              >
+                Transaction Hash:
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: "monospace",
+                  color: "#888",
+                  fontSize: "0.8rem",
+                  backgroundColor: "#f5f5f5",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  wordBreak: "break-all",
+                }}
+              >
+                {tx.tx_hash}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Status Badge */}
+        <Box sx={{ ml: 2, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
           {tx.status && (
             <Chip
-              label={tx.status}
+              label={tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
               size="small"
               sx={{
-                ml: 1,
                 backgroundColor: tx.status === "confirmed" ? "#4caf50" : tx.status === "failed" ? "#ff001e" : "#ffb300",
                 color: "#fff",
                 fontFamily: "Poppins",
                 fontWeight: "600",
                 fontSize: "0.75rem",
+                mb: 1,
               }}
             />
           )}
+
+          {/* Transaction ID */}
+          <Typography
+            sx={{
+              fontFamily: "Poppins",
+              color: "#888",
+              fontSize: "0.7rem",
+              fontWeight: "500",
+            }}
+          >
+            ID: {tx.id}
+          </Typography>
         </Box>
       </Box>
     </Paper>

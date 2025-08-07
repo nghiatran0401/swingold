@@ -36,7 +36,7 @@ class TransactionService:
             direction=models.DirectionEnum.debit,
             tx_hash=tx_hash,
             description=f"Item purchase - tx: {tx_hash}",
-            status=models.StatusEnum.pending,
+            status=models.StatusEnum.confirmed,  # Transactions are recorded after blockchain confirmation
             user_id=user_id,
             item_id=item_id,
             trade_type="item_purchase",
@@ -64,7 +64,7 @@ class TransactionService:
             direction=models.DirectionEnum.credit,  # User earns tokens
             tx_hash=tx_hash,
             description=f"Event registration reward - tx: {tx_hash}",
-            status=models.StatusEnum.pending,
+            status=models.StatusEnum.confirmed,  # Transactions are recorded after blockchain confirmation
             user_id=user_id,
             event_id=event_id,
             trade_type="event_registration",
@@ -93,7 +93,7 @@ class TransactionService:
             direction=models.DirectionEnum.debit,  # User sends tokens
             tx_hash=tx_hash,
             description=f"Transfer to {recipient_address[:8]}... - tx: {tx_hash}",
-            status=models.StatusEnum.pending,
+            status=models.StatusEnum.confirmed,  # Transactions are recorded after blockchain confirmation
             user_id=user_id,
             trade_type="transfer",
             counterparty_address=recipient_address,
@@ -123,7 +123,7 @@ class TransactionService:
             direction=models.DirectionEnum.debit,
             tx_hash=tx_hash,
             description=f"Trade creation for {item_name} - tx: {tx_hash}",
-            status=models.StatusEnum.pending,
+            status=models.StatusEnum.confirmed,  # Transactions are recorded after blockchain confirmation
             trade_type="trade_creation",
             counterparty_address=seller_address,
             item_name=item_name,
@@ -151,7 +151,7 @@ class TransactionService:
             direction=models.DirectionEnum.debit,
             tx_hash=tx_hash,
             description=f"Trade confirmation for {item_name} - tx: {tx_hash}",
-            status=models.StatusEnum.pending,
+            status=models.StatusEnum.confirmed,  # Transactions are recorded after blockchain confirmation
             trade_type="trade_confirmation",
             item_name=item_name,
             created_at=datetime.utcnow()
@@ -177,7 +177,7 @@ class TransactionService:
             direction=models.DirectionEnum.credit,
             tx_hash=tx_hash,
             description=f"Trade cancellation for {item_name} - tx: {tx_hash}",
-            status=models.StatusEnum.pending,
+            status=models.StatusEnum.confirmed,  # Transactions are recorded after blockchain confirmation
             trade_type="trade_cancellation",
             item_name=item_name,
             created_at=datetime.utcnow()
@@ -203,7 +203,7 @@ class TransactionService:
             direction=models.DirectionEnum.credit,
             tx_hash=tx_hash,
             description=f"Token minting to {to_address[:8]}... - tx: {tx_hash}",
-            status=models.StatusEnum.pending,
+            status=models.StatusEnum.confirmed,  # Transactions are recorded after blockchain confirmation
             trade_type="token_minting",
             counterparty_address=to_address,
             created_at=datetime.utcnow()
@@ -233,7 +233,7 @@ class TransactionService:
             direction=models.DirectionEnum.debit,
             tx_hash=tx_hash,
             description=f"P2P trade: {item_name} - tx: {tx_hash}",
-            status=models.StatusEnum.pending,
+            status=models.StatusEnum.confirmed,  # Transactions are recorded after blockchain confirmation
             user_id=user_id,
             trade_type=trade_type,
             item_name=item_name,
